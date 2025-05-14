@@ -5,77 +5,75 @@ import { PrismaClient, Prisma } from '@prisma/client';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const pageSize = parseInt(searchParams.get('pageSize') || '10');
     const search = searchParams.get('search') || '';
-    const sort = searchParams.get('sort');
-    const order = (searchParams.get('order') || 'asc') as Prisma.SortOrder;
-    const pageStr = searchParams.get('page') || '1';
-    const pageSizeStr = searchParams.get('pageSize') || '10';
-    const accountId = searchParams.get('accountId');
-    const type = searchParams.get('type');
-    const page: number = Math.max(1, parseInt(pageStr));
-    const pageSize: number = Math.max(1, parseInt(pageSizeStr));
 
-    // Build filter conditions
-    const where: Prisma.TransactionWhereInput = {
-      AND: [
-        // Add accountId filter if provided
-        ...(accountId ? [{ accountId }] : []),
-        // Add type filter if provided
-        ...(type ? [{ type }] : []),
-        // Add search across relevant fields
-        ...(search ? [{
+    console.log('Transactions API request params:', { page, pageSize, search });
+
+    // Build where clause for search
+    const where: Prisma.TransactionWhereInput = search
+      ? {
           OR: [
-            { type: { contains: search, mode: 'insensitive' } },
-            { description: { contains: search, mode: 'insensitive' } },
+            { type: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { description: { contains: search, mode: Prisma.QueryMode.insensitive } },
             { account: {
-              customer: {
                 OR: [
-                  { name: { contains: search, mode: 'insensitive' } },
-                  { email: { contains: search, mode: 'insensitive' } }
-                ]
-              }
-            }}
-          ]
-        }] : [])
-      ]
-    };
+                  { accountType: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                  { customer: {
+                      OR: [
+                        { firstName: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                        { lastName: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                        { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }
+      : {};
 
-    // Build sort conditions
-    let orderBy: Prisma.TransactionOrderByWithRelationInput | undefined = undefined;
-    if (sort) {
-      const validSortFields = ['type', 'amount', 'createdAt'] as const;
-      if (validSortFields.includes(sort as typeof validSortFields[number])) {
-        orderBy = { [sort]: order };
-      }
-    }
-
-    // Get total count
+    // Get total count for pagination
     const totalItems = await prisma.transaction.count({ where });
     const totalPages = Math.ceil(totalItems / pageSize);
 
-    // Get paginated transactions
+    // Get paginated transactions with complete account and customer details
     const transactions = await prisma.transaction.findMany({
       where,
-      orderBy,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
       include: {
         account: {
-          select: {
-            id: true,
-            accountType: true,
-            balance: true,
+          include: {
             customer: {
               select: {
                 id: true,
-                name: true,
-                email: true
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true
+              }
+            },
+            _count: {
+              select: {
+                transactions: true
               }
             }
           }
         }
-      }
+      },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
+
+    console.log(`Found ${transactions.length} transactions`);
+
+    // Extract all account IDs to log for debugging
+    const accountIds = transactions.map(t => t.accountId);
+    console.log('Transaction account IDs:', accountIds);
 
     return NextResponse.json({
       success: true,
@@ -92,7 +90,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Error in GET /api/transactions:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: 'Failed to fetch transactions' },
       { status: 500 }
     );
   }
@@ -119,7 +117,17 @@ export async function POST(request: Request) {
 
     // Validate account exists
     const account = await prisma.account.findUnique({
-      where: { id: transactionData.accountId }
+      where: { id: transactionData.accountId },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
     });
 
     if (!account) {
@@ -138,6 +146,20 @@ export async function POST(request: Request) {
           amount: transactionData.amount,
           description: transactionData.description,
           accountId: transactionData.accountId,
+        },
+        include: {
+          account: {
+            include: {
+              customer: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true
+                }
+              }
+            }
+          }
         }
       });
 
@@ -148,6 +170,16 @@ export async function POST(request: Request) {
         data: {
           balance: {
             increment: balanceChange
+          }
+        },
+        include: {
+          customer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
           }
         }
       });
@@ -183,7 +215,21 @@ export async function PUT(request: Request) {
 
     // Check if transaction exists
     const existingTransaction = await prisma.transaction.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        account: {
+          include: {
+            customer: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true
+              }
+            }
+          }
+        }
+      }
     });
 
     if (!existingTransaction) {
@@ -201,10 +247,15 @@ export async function PUT(request: Request) {
       },
       include: {
         account: {
-          select: {
-            id: true,
-            accountType: true,
-            balance: true
+          include: {
+            customer: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true
+              }
+            }
           }
         }
       }
@@ -230,20 +281,50 @@ export async function DELETE(request: Request) {
 
     if (!id) {
       return NextResponse.json(
-        { success: false, error: 'Transaction ID is required' },
+        { error: 'Transaction ID is required' },
         { status: 400 }
       );
     }
 
-    // For security and audit purposes, we don't allow deleting transactions
-    return NextResponse.json(
-      { success: false, error: 'Transactions cannot be deleted for audit purposes' },
-      { status: 403 }
-    );
+    // Get the transaction and its account
+    const transaction = await prisma.transaction.findUnique({
+      where: { id },
+      include: {
+        account: true,
+      },
+    });
+
+    if (!transaction) {
+      return NextResponse.json(
+        { error: 'Transaction not found' },
+        { status: 404 }
+      );
+    }
+
+    // Start a transaction to update account balance and delete transaction
+    await prisma.$transaction(async (tx) => {
+      // Update account balance
+      await tx.account.update({
+        where: { id: transaction.accountId },
+        data: {
+          balance: {
+            // Reverse the transaction amount
+            increment: transaction.type === 'WITHDRAWAL' ? transaction.amount : -transaction.amount,
+          },
+        },
+      });
+
+      // Delete the transaction
+      await tx.transaction.delete({
+        where: { id },
+      });
+    });
+
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in DELETE /api/transactions:', error);
+    console.error('Failed to delete transaction:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { error: 'Failed to delete transaction' },
       { status: 500 }
     );
   }

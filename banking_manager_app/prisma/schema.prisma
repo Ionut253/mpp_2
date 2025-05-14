@@ -15,7 +15,8 @@ datasource db {
 
 model Customer {
   id        String    @id @default(cuid())
-  name      String
+  firstName String
+  lastName  String
   email     String    @unique
   phone     String?
   address   String?
@@ -23,25 +24,38 @@ model Customer {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   accounts  Account[]
+
+  @@index([firstName, lastName])
+  @@index([createdAt])
 }
 
 model Account {
-  id          String      @id @default(cuid())
+  id          String        @id @default(cuid())
   accountType String      // e.g., "SAVINGS", "CHECKING"
   balance     Float       @default(0)
   customerId  String
-  customer    Customer    @relation(fields: [customerId], references: [id])
+  customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   transactions Transaction[]
+
+  @@index([customerId])
+  @@index([accountType])
+  @@index([createdAt])
+  @@index([balance])
 }
 
 model Transaction {
-  id        String   @id @default(cuid())
-  amount    Float
-  type      String   // e.g., "DEPOSIT", "WITHDRAWAL", "TRANSFER"
-  accountId String
-  account   Account  @relation(fields: [accountId], references: [id])
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  amount      Float
+  type        String   // e.g., "DEPOSIT", "WITHDRAWAL", "TRANSFER"
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
   description String?
+
+  @@index([accountId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([amount])
 }

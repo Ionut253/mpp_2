@@ -3,87 +3,162 @@ import { faker } from '@faker-js/faker'
 
 const prisma = new PrismaClient()
 
-// Function to generate simple phone numbers in (XXX) XXX-XXXX format
-const generatePhoneNumber = () => {
-  const areaCode = faker.number.int({ min: 100, max: 999 });
-  const firstPart = faker.number.int({ min: 100, max: 999 });
-  const secondPart = faker.number.int({ min: 1000, max: 9999 });
-  return `(${areaCode}) ${firstPart}-${secondPart}`;
+const CUSTOMER_COUNT = 25
+const MIN_ACCOUNTS_PER_CUSTOMER = 1
+const MAX_ACCOUNTS_PER_CUSTOMER = 3
+const MIN_TRANSACTIONS_PER_ACCOUNT = 3
+const MAX_TRANSACTIONS_PER_ACCOUNT = 10
+
+const ACCOUNT_TYPES = ['SAVINGS', 'CHECKING', 'BUSINESS', 'INVESTMENT']
+const TRANSACTION_TYPES = ['DEPOSIT', 'WITHDRAWAL', 'TRANSFER']
+
+// Function to generate simple phone numbers in 07XX-XXX-XXX format
+const generateSimplePhoneNumber = () => {
+  const prefix = '07';
+  const part1 = faker.number.int({ min: 10, max: 99 });
+  const part2 = faker.number.int({ min: 100, max: 999 });
+  const part3 = faker.number.int({ min: 100, max: 999 });
+  return `${prefix}${part1}-${part2}-${part3}`;
+};
+
+// Function to generate simple transaction descriptions
+const generateTransactionDescription = (type: string) => {
+  switch (type) {
+    case 'DEPOSIT':
+      return faker.helpers.arrayElement([
+        'Salary',
+        'Cash deposit',
+        'Check deposit',
+        'Transfer in',
+        'Interest'
+      ]);
+    case 'WITHDRAWAL':
+      return faker.helpers.arrayElement([
+        'ATM',
+        'Cash',
+        'Bill payment',
+        'Purchase',
+        'Transfer out'
+      ]);
+    case 'TRANSFER':
+      return faker.helpers.arrayElement([
+        'To savings',
+        'To checking',
+        'To friend',
+        'To family',
+        'Monthly transfer'
+      ]);
+    default:
+      return type;
+  }
 };
 
 async function main() {
   // Clear existing data
-  await prisma.transaction.deleteMany()
-  await prisma.account.deleteMany()
-  await prisma.customer.deleteMany()
+  console.log('Clearing existing data...');
+  await prisma.transaction.deleteMany();
+  await prisma.account.deleteMany();
+  await prisma.customer.deleteMany();
 
-  console.log('Creating 50 customers with accounts and transactions...')
-
-  // Create 50 customers
-  for (let i = 0; i < 50; i++) {
+  console.log('Creating customers...');
+  for (let i = 0; i < CUSTOMER_COUNT; i++) {
+    const firstName = faker.person.firstName();
+    const lastName = faker.person.lastName();
+    
+    // Create customer
     const customer = await prisma.customer.create({
       data: {
-        name: faker.person.fullName(),
-        email: faker.internet.email(),
-        phone: generatePhoneNumber(),
-        address: faker.location.streetAddress(true),
-        accounts: {
-          create: [
-            // Create a checking account
-            {
-              accountType: 'CHECKING',
-              balance: Number(faker.finance.amount({ min: 1000, max: 10000 })),
-              transactions: {
-                create: Array.from({ length: faker.number.int({ min: 3, max: 8 }) }, () => ({
-                  type: faker.helpers.arrayElement(['DEPOSIT', 'WITHDRAWAL', 'TRANSFER']),
-                  amount: Number(faker.finance.amount({ min: 50, max: 1000 })),
-                  description: faker.finance.transactionDescription(),
-                })),
-              },
-            },
-            // Create a savings account
-            {
-              accountType: 'SAVINGS',
-              balance: Number(faker.finance.amount({ min: 5000, max: 50000 })),
-              transactions: {
-                create: Array.from({ length: faker.number.int({ min: 2, max: 5 }) }, () => ({
-                  type: faker.helpers.arrayElement(['DEPOSIT', 'WITHDRAWAL']),
-                  amount: Number(faker.finance.amount({ min: 100, max: 5000 })),
-                  description: faker.finance.transactionDescription(),
-                })),
-              },
-            },
-          ],
-        },
+        firstName,
+        lastName,
+        email: faker.internet.email({ firstName, lastName }),
+        phone: generateSimplePhoneNumber(),
+        address: faker.location.streetAddress(),
+        dob: faker.date.between({ 
+          from: new Date('1960-01-01'), 
+          to: new Date('2000-12-31') 
+        }),
       },
-      include: {
-        accounts: {
-          include: {
-            transactions: true,
-          },
-        },
-      },
-    })
+    });
 
-    console.log(`Created customer ${i + 1}/50: ${customer.name} - ${customer.phone}`)
+    // Create 1-3 accounts for each customer
+    const accountCount = faker.number.int({ 
+      min: MIN_ACCOUNTS_PER_CUSTOMER, 
+      max: MAX_ACCOUNTS_PER_CUSTOMER 
+    });
+
+    for (let j = 0; j < accountCount; j++) {
+      const account = await prisma.account.create({
+        data: {
+          accountType: faker.helpers.arrayElement(ACCOUNT_TYPES),
+          balance: 0, // We'll calculate this based on transactions
+          customerId: customer.id,
+        },
+      });
+
+      // Create 3-10 transactions for each account
+      const transactionCount = faker.number.int({ 
+        min: MIN_TRANSACTIONS_PER_ACCOUNT, 
+        max: MAX_TRANSACTIONS_PER_ACCOUNT 
+      });
+
+      let balance = 0;
+      for (let k = 0; k < transactionCount; k++) {
+        const type = faker.helpers.arrayElement(TRANSACTION_TYPES);
+        const amount = parseFloat(faker.finance.amount({ min: 50, max: 5000 }));
+        
+        // Update balance based on transaction type
+        if (type === 'DEPOSIT') {
+          balance += amount;
+        } else if (type === 'WITHDRAWAL') {
+          balance = Math.max(0, balance - amount); // Prevent negative balance
+        } else {
+          // For transfers, randomly add or subtract
+          balance += faker.helpers.arrayElement([1, -1]) * amount;
+          balance = Math.max(0, balance); // Prevent negative balance
+        }
+
+        await prisma.transaction.create({
+          data: {
+            type,
+            amount,
+            description: generateTransactionDescription(type),
+            accountId: account.id,
+            createdAt: faker.date.between({ 
+              from: new Date('2023-01-01'), 
+              to: new Date() 
+            }),
+          },
+        });
+      }
+
+      // Update account balance
+      await prisma.account.update({
+        where: { id: account.id },
+        data: { balance },
+      });
+    }
+
+    if ((i + 1) % 10 === 0) {
+      console.log(`Created ${i + 1} customers...`);
+    }
   }
 
-  // Get final counts
-  const customerCount = await prisma.customer.count()
-  const accountCount = await prisma.account.count()
-  const transactionCount = await prisma.transaction.count()
+  const customerCount = await prisma.customer.count();
+  const accountCount = await prisma.account.count();
+  const transactionCount = await prisma.transaction.count();
 
-  console.log('\nSeeding completed successfully!')
-  console.log(`Created ${customerCount} customers`)
-  console.log(`Created ${accountCount} accounts`)
-  console.log(`Created ${transactionCount} transactions`)
+  console.log('\nSeeding completed!');
+  console.log('-------------------');
+  console.log(`Created ${customerCount} customers`);
+  console.log(`Created ${accountCount} accounts`);
+  console.log(`Created ${transactionCount} transactions`);
 }
 
 main()
   .catch((e) => {
-    console.error('Error seeding database:', e)
-    process.exit(1)
+    console.error('Error in seed script:', e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  }) 
+    await prisma.$disconnect();
+  }); 
