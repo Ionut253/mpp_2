@@ -1,8 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 
-// Debug: Log the DATABASE_URL
-console.log('DATABASE_URL:', process.env.DATABASE_URL);
-
 const prismaClientSingleton = () => {
   return new PrismaClient();
 };

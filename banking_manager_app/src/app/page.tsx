@@ -756,6 +756,30 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <h1 className="text-2xl font-bold mb-4">Banking Manager Dashboard</h1>
+        <div className="flex gap-4">
+          <a 
+            href="/admin" 
+            className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded"
+          >
+            Admin Dashboard
+          </a>
+          <a 
+            href="/customer" 
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Customer Dashboard
+          </a>
+          <a 
+            href="/login" 
+            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+          >
+            Login
+          </a>
+        </div>
+      </div>
+
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
           <span>{error}</span>

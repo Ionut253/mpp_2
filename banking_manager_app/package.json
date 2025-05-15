@@ -7,7 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "ts-node --project tsconfig.seed.json prisma/seed.ts"
+    "seed": "ts-node --project tsconfig.seed.json prisma/seed.ts",
+    "create:admin": "ts-node --project tsconfig.seed.json prisma/seed-admin.ts",
+    "delete:admin": "ts-node --project tsconfig.seed.json prisma/delete-admin.ts",
+    "reset:admin": "npm run delete:admin && npm run create:admin",
+    "generate:test-data": "ts-node --project tsconfig.seed.json scripts/generate-test-data.ts",
+    "test:performance": "ts-node --project tsconfig.seed.json scripts/test-statistics-performance.ts",
+    "test:all": "npm run generate:test-data && npm run test:performance"
   },
   "dependencies": {
     "@prisma/client": "^5.10.2",
@@ -23,7 +29,6 @@
     "@vercel/kv": "^1.0.1",
     "autoprefixer": "10.4.17",
     "bcryptjs": "^3.0.2",
-    "cli-progress": "^3.12.0",
     "date-fns": "^4.1.0",
     "eslint": "8.56.0",
     "eslint-config-next": "14.1.0",
@@ -42,7 +47,6 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
-    "@types/cli-progress": "^3.11.5",
     "prisma": "^5.10.2",
     "ts-node": "^10.9.2"
   },

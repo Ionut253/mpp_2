@@ -6,11 +6,33 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/client"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id                String            @id @default(cuid())
+  email             String            @unique
+  password          String
+  role              UserRole          @default(USER)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  customer          Customer?
+  activityLogs      ActivityLog[]
+  monitoredUsers    MonitoredUser[]   @relation("MonitoredUser")
+  monitoringAdded   MonitoredUser[]   @relation("MonitoringAddedBy")
+
+  @@index([email])
+  @@index([role])
 }
 
 model Customer {
@@ -24,6 +46,8 @@ model Customer {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   accounts  Account[]
+  userId    String?   @unique
+  user      User?     @relation(fields: [userId], references: [id])
 
   @@index([firstName, lastName])
   @@index([createdAt])
@@ -58,4 +82,43 @@ model Transaction {
   @@index([type])
   @@index([createdAt])
   @@index([amount])
+}
+
+enum ActionType {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+}
+
+model ActivityLog {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  action    ActionType
+  entity    String     // The name of the entity (e.g., "Customer", "Account", "Transaction")
+  entityId  String     // The ID of the affected entity
+  details   String?    // Additional details about the action
+  timestamp DateTime   @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([timestamp])
+}
+
+model MonitoredUser {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation("MonitoredUser", fields: [userId], references: [id])
+  reason      String
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  addedById   String
+  addedBy     User      @relation("MonitoringAddedBy", fields: [addedById], references: [id])
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([createdAt])
 }

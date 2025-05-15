@@ -13,7 +13,8 @@ const PUBLIC_PATHS = [
   '/api/auth/login',
   '/api/auth/register',
   '/login',
-  '/register'
+  '/register',
+  '/'
 ];
 
 // CSRF protection: allowed origins
@@ -49,7 +50,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Allow public paths
-  if (PUBLIC_PATHS.some(p => path.startsWith(p))) {
+  if (PUBLIC_PATHS.some(p => path === p || path.startsWith(p))) {
     return NextResponse.next();
   }
 
@@ -77,13 +78,30 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set('x-user-id', payload.userId as string);
     requestHeaders.set('x-user-role', payload.role as string);
     requestHeaders.set('x-user-email', payload.email as string);
+    
+    if (payload.customerId) {
+      requestHeaders.set('x-customer-id', payload.customerId as string);
+    }
 
     // Check admin routes
-    if (path.startsWith('/api/admin/') && payload.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      );
+    if ((path.startsWith('/api/admin/') || path.startsWith('/admin')) && payload.role !== 'ADMIN') {
+      if (path.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 403 }
+        );
+      }
+      return NextResponse.redirect(new URL('/customer', request.url));
+    }
+
+    // Check customer routes for regular users
+    if (path.startsWith('/customer') && !payload.customerId && payload.role !== 'ADMIN') {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+    
+    // Redirect admins trying to access customer routes to admin dashboard
+    if (path.startsWith('/customer') && payload.role === 'ADMIN' && !payload.customerId) {
+      return NextResponse.redirect(new URL('/admin', request.url));
     }
 
     // Add security headers
@@ -101,6 +119,7 @@ export async function middleware(request: NextRequest) {
 
     return response;
   } catch (error) {
+    console.error('Token verification error:', error);
     // If token is invalid, clear it and redirect to login
     const response = path.startsWith('/api/')
       ? NextResponse.json({ error: 'Invalid token' }, { status: 401 })

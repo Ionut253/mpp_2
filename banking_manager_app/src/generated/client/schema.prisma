@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  password     String
+  role         UserRole      @default(USER)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  customer     Customer?
+  activityLogs ActivityLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String    @unique
+  phone     String?
+  address   String?
+  dob       DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  accounts  Account[]
+  userId    String?   @unique
+  user      User?     @relation(fields: [userId], references: [id])
+
+  @@index([firstName, lastName])
+  @@index([createdAt])
+}
+
+model Account {
+  id           String        @id @default(cuid())
+  accountType  String // e.g., "SAVINGS", "CHECKING"
+  balance      Float         @default(0)
+  customerId   String
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+
+  @@index([customerId])
+  @@index([accountType])
+  @@index([createdAt])
+  @@index([balance])
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  amount      Float
+  type        String // e.g., "DEPOSIT", "WITHDRAWAL", "TRANSFER"
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  description String?
+
+  @@index([accountId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([amount])
+}
+
+enum ActionType {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+}
+
+model ActivityLog {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  action    ActionType
+  entity    String // The name of the entity (e.g., "Customer", "Account", "Transaction")
+  entityId  String // The ID of the affected entity
+  details   String? // Additional details about the action
+  timestamp DateTime   @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([timestamp])
+}

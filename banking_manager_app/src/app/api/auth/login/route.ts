@@ -22,7 +22,16 @@ export async function POST(request: Request) {
 
     // Find user
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
     });
 
     if (!user) {
@@ -33,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+    const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
@@ -45,7 +54,8 @@ export async function POST(request: Request) {
     const token = await new SignJWT({
       userId: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
+      customerId: user.customer?.id
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -61,26 +71,30 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 // 24 hours
     });
 
-    // Log the login
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: 'LOGIN',
-        entityType: 'User',
-        entityId: user.id,
-        details: `User logged in with email ${email}`,
-        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
-        userAgent: request.headers.get('user-agent')
-      }
-    });
+    try {
+      // Log the login
+      await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: 'READ',
+          entity: 'User',
+          entityId: user.id,
+          details: `User logged in with email ${email}`
+        }
+      });
+    } catch (logError) {
+      console.error('Error logging login activity:', logError);
+      // Continue even if logging fails
+    }
 
-    // Return user data (excluding password hash)
+    // Return user data (excluding password)
     return NextResponse.json({
       success: true,
       data: {
         id: user.id,
         email: user.email,
-        role: user.role
+        role: user.role,
+        customer: user.customer
       }
     });
   } catch (error) {

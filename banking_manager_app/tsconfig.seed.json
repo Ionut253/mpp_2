@@ -24,5 +24,5 @@
     "baseUrl": "."
   },
   "exclude": ["node_modules"],
-  "include": ["./prisma/seed.ts"]
+  "include": ["./prisma/seed.ts", "./prisma/seed-admin.ts", "./prisma/delete-admin.ts", "./scripts/**/*.ts"]
 } 
