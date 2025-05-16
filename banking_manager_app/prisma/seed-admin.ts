@@ -6,7 +6,6 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Creating admin user...');
   
-  // Check if admin user already exists
   const existingAdmin = await prisma.user.findUnique({
     where: { email: 'admin@bankingapp.com' }
   });
@@ -16,11 +15,9 @@ async function main() {
     return;
   }
 
-  // Hash password
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash('admin123', salt);
 
-  // Create admin user without customer association
   const adminUser = await prisma.user.create({
     data: {
       email: 'admin@bankingapp.com',

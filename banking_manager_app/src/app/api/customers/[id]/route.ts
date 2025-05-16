@@ -10,10 +10,8 @@ export async function PUT(
     const id = params.id;
     const customerData = await request.json();
 
-    // Validation errors object
     const errors: Record<string, string> = {};
 
-    // Required fields validation
     if (!customerData.firstName?.trim()) {
       errors.firstName = 'First name is required';
     }
@@ -34,7 +32,6 @@ export async function PUT(
       }
     }
 
-    // Return validation errors if any
     if (Object.keys(errors).length > 0) {
       return NextResponse.json(
         { success: false, errors },
@@ -42,7 +39,6 @@ export async function PUT(
       );
     }
 
-    // Check if customer exists
     const existingCustomer = await prisma.customer.findUnique({
       where: { id }
     });
@@ -54,7 +50,6 @@ export async function PUT(
       );
     }
 
-    // Check if email is being changed and if it's already taken
     if (customerData.email !== existingCustomer.email) {
       const emailExists = await prisma.customer.findUnique({
         where: { email: customerData.email.trim() }
@@ -73,7 +68,6 @@ export async function PUT(
       }
     }
 
-    // Update customer
     const updatedCustomer = await prisma.customer.update({
       where: { id },
       data: {
@@ -100,7 +94,6 @@ export async function PUT(
   } catch (error) {
     console.error('Error in PUT /api/customers/[id]:', error);
     
-    // Check for specific Prisma errors
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2025') {
         return NextResponse.json(
@@ -125,7 +118,6 @@ export async function DELETE(
     const id = params.id;
     console.log('Starting deletion process for customer:', id);
 
-    // Get the customer with all their accounts and transactions
     const customer = await prisma.customer.findUnique({
       where: { id },
       include: {
@@ -153,11 +145,9 @@ export async function DELETE(
       }))
     });
 
-    // Delete everything in a transaction to ensure data consistency
     const result = await prisma.$transaction(async (tx) => {
       let deletedTransactions = 0;
       
-      // First, delete all transactions from all accounts
       for (const account of customer.accounts) {
         console.log(`Deleting transactions for account ${account.id}...`);
         const { count } = await tx.transaction.deleteMany({
@@ -167,14 +157,12 @@ export async function DELETE(
         console.log(`Deleted ${count} transactions from account ${account.id}`);
       }
 
-      // Then delete all accounts
       console.log('Deleting accounts...');
       const { count: deletedAccounts } = await tx.account.deleteMany({
         where: { customerId: id }
       });
       console.log(`Deleted ${deletedAccounts} accounts`);
 
-      // Finally delete the customer
       console.log('Deleting customer...');
       const deletedCustomer = await tx.customer.delete({
         where: { id }
@@ -203,7 +191,6 @@ export async function DELETE(
   } catch (error) {
     console.error('Error in DELETE /api/customers/[id]:', error);
     
-    // Check for specific Prisma errors
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2025') {
         return NextResponse.json(

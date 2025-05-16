@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { PrismaClient, Prisma } from '@prisma/client';
 
-// Define the consistent customer select object
 const customerSelect = {
   id: true,
   firstName: true,
@@ -11,7 +10,6 @@ const customerSelect = {
   phone: true
 } as const;
 
-// Define the consistent account include object
 const accountInclude = {
   customer: {
     select: customerSelect
@@ -27,17 +25,12 @@ export async function GET(request: Request) {
     const idsParam = searchParams.get('ids');
     const ids = idsParam?.split(',').filter(id => id.trim() !== '');
 
-    console.log('Accounts API request params:', { page, pageSize, search, ids });
 
-    // Build where clause
     let where: Prisma.AccountWhereInput = {};
     
-    // If IDs are provided, override other filters and just fetch those accounts
     if (ids && ids.length > 0) {
-      console.log(`Fetching specific accounts by IDs: ${ids.join(', ')}`);
       where = { id: { in: ids } };
     } else {
-      // Otherwise use regular filtering
       where = {
         ...(search ? {
           OR: [
@@ -55,14 +48,11 @@ export async function GET(request: Request) {
       };
     }
 
-    // Get total count for pagination
     const totalItems = await prisma.account.count({ where });
     const totalPages = Math.ceil(totalItems / pageSize);
 
-    // When fetching by IDs, don't apply pagination
     const skipPagination = ids && ids.length > 0;
 
-    // Get accounts
     const accounts = await prisma.account.findMany({
       where,
       include: {
@@ -89,7 +79,6 @@ export async function GET(request: Request) {
       },
     });
 
-    console.log(`Found ${accounts.length} accounts`);
 
     return NextResponse.json({
       success: true,
@@ -116,7 +105,6 @@ export async function POST(request: Request) {
   try {
     const accountData = await request.json();
 
-    // Basic validation
     if (!accountData.customerId || !accountData.accountType) {
       return NextResponse.json(
         {
@@ -130,7 +118,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate customer exists and get full customer data
     const customer = await prisma.customer.findUnique({
       where: { id: accountData.customerId },
       select: customerSelect
@@ -143,7 +130,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create account with customer information
     const newAccount = await prisma.account.create({
       data: {
         accountType: accountData.accountType,
@@ -179,7 +165,6 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Check if account exists with customer information
     const existingAccount = await prisma.account.findUnique({
       where: { id },
       include: accountInclude
@@ -192,7 +177,6 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Update account with customer information
     const updatedAccount = await prisma.account.update({
       where: { id },
       data: {
@@ -228,7 +212,6 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Check if account exists and has transactions, include customer info
     const account = await prisma.account.findUnique({
       where: { id },
       include: {
@@ -257,16 +240,13 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // If force is true or no transactions exist, delete the account and its transactions
     await prisma.$transaction(async (tx) => {
-      // Delete all transactions first if they exist
       if (account.transactions.length > 0) {
         await tx.transaction.deleteMany({
           where: { accountId: id }
         });
       }
 
-      // Then delete the account
       await tx.account.delete({
         where: { id }
       });

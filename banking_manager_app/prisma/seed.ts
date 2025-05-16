@@ -12,7 +12,6 @@ const MAX_TRANSACTIONS_PER_ACCOUNT = 10
 const ACCOUNT_TYPES = ['SAVINGS', 'CHECKING', 'BUSINESS', 'INVESTMENT']
 const TRANSACTION_TYPES = ['DEPOSIT', 'WITHDRAWAL', 'TRANSFER']
 
-// Function to generate simple phone numbers in 07XX-XXX-XXX format
 const generateSimplePhoneNumber = () => {
   const prefix = '07';
   const part1 = faker.number.int({ min: 10, max: 99 });
@@ -21,7 +20,6 @@ const generateSimplePhoneNumber = () => {
   return `${prefix}${part1}-${part2}-${part3}`;
 };
 
-// Function to generate simple transaction descriptions
 const generateTransactionDescription = (type: string) => {
   switch (type) {
     case 'DEPOSIT':
@@ -54,7 +52,6 @@ const generateTransactionDescription = (type: string) => {
 };
 
 async function main() {
-  // Clear existing data
   console.log('Clearing existing data...');
   await prisma.transaction.deleteMany();
   await prisma.account.deleteMany();
@@ -65,7 +62,6 @@ async function main() {
     const firstName = faker.person.firstName();
     const lastName = faker.person.lastName();
     
-    // Create customer
     const customer = await prisma.customer.create({
       data: {
         firstName,
@@ -80,7 +76,6 @@ async function main() {
       },
     });
 
-    // Create 1-3 accounts for each customer
     const accountCount = faker.number.int({ 
       min: MIN_ACCOUNTS_PER_CUSTOMER, 
       max: MAX_ACCOUNTS_PER_CUSTOMER 
@@ -90,12 +85,11 @@ async function main() {
       const account = await prisma.account.create({
         data: {
           accountType: faker.helpers.arrayElement(ACCOUNT_TYPES),
-          balance: 0, // We'll calculate this based on transactions
+          balance: 0, 
           customerId: customer.id,
         },
       });
 
-      // Create 3-10 transactions for each account
       const transactionCount = faker.number.int({ 
         min: MIN_TRANSACTIONS_PER_ACCOUNT, 
         max: MAX_TRANSACTIONS_PER_ACCOUNT 
@@ -106,15 +100,13 @@ async function main() {
         const type = faker.helpers.arrayElement(TRANSACTION_TYPES);
         const amount = parseFloat(faker.finance.amount({ min: 50, max: 5000 }));
         
-        // Update balance based on transaction type
         if (type === 'DEPOSIT') {
           balance += amount;
         } else if (type === 'WITHDRAWAL') {
-          balance = Math.max(0, balance - amount); // Prevent negative balance
+          balance = Math.max(0, balance - amount); 
         } else {
-          // For transfers, randomly add or subtract
           balance += faker.helpers.arrayElement([1, -1]) * amount;
-          balance = Math.max(0, balance); // Prevent negative balance
+          balance = Math.max(0, balance); 
         }
 
         await prisma.transaction.create({
@@ -131,7 +123,6 @@ async function main() {
         });
       }
 
-      // Update account balance
       await prisma.account.update({
         where: { id: account.id },
         data: { balance },

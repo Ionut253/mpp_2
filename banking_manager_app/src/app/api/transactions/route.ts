@@ -11,7 +11,6 @@ export async function GET(request: Request) {
 
     console.log('Transactions API request params:', { page, pageSize, search });
 
-    // Build where clause for search
     const where: Prisma.TransactionWhereInput = search
       ? {
           OR: [
@@ -35,11 +34,9 @@ export async function GET(request: Request) {
         }
       : {};
 
-    // Get total count for pagination
     const totalItems = await prisma.transaction.count({ where });
     const totalPages = Math.ceil(totalItems / pageSize);
 
-    // Get paginated transactions with complete account and customer details
     const transactions = await prisma.transaction.findMany({
       where,
       include: {
@@ -71,7 +68,6 @@ export async function GET(request: Request) {
 
     console.log(`Found ${transactions.length} transactions`);
 
-    // Extract all account IDs to log for debugging
     const accountIds = transactions.map(t => t.accountId);
     console.log('Transaction account IDs:', accountIds);
 
@@ -100,7 +96,6 @@ export async function POST(request: Request) {
   try {
     const transactionData = await request.json();
 
-    // Basic validation
     if (!transactionData.accountId || !transactionData.amount || !transactionData.type) {
       return NextResponse.json(
         {
@@ -115,7 +110,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate account exists
     const account = await prisma.account.findUnique({
       where: { id: transactionData.accountId },
       include: {
@@ -137,9 +131,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Start a transaction to update both the transaction and account balance
     const result = await prisma.$transaction(async (prisma) => {
-      // Create the transaction
       const newTransaction = await prisma.transaction.create({
         data: {
           type: transactionData.type,
@@ -163,7 +155,6 @@ export async function POST(request: Request) {
         }
       });
 
-      // Update account balance based on transaction type
       const balanceChange = transactionData.type === 'WITHDRAWAL' ? -transactionData.amount : transactionData.amount;
       const updatedAccount = await prisma.account.update({
         where: { id: transactionData.accountId },
@@ -213,7 +204,6 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Check if transaction exists
     const existingTransaction = await prisma.transaction.findUnique({
       where: { id },
       include: {
@@ -239,7 +229,6 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Update transaction description only (amount and type should not be modified)
     const updatedTransaction = await prisma.transaction.update({
       where: { id },
       data: {
@@ -286,7 +275,6 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Get the transaction and its account
     const transaction = await prisma.transaction.findUnique({
       where: { id },
       include: {
@@ -301,20 +289,16 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Start a transaction to update account balance and delete transaction
     await prisma.$transaction(async (tx) => {
-      // Update account balance
       await tx.account.update({
         where: { id: transaction.accountId },
         data: {
           balance: {
-            // Reverse the transaction amount
             increment: transaction.type === 'WITHDRAWAL' ? transaction.amount : -transaction.amount,
           },
         },
       });
 
-      // Delete the transaction
       await tx.transaction.delete({
         where: { id },
       });

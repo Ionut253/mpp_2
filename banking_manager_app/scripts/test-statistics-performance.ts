@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 
-// Create a standalone script that directly tests the statistical queries
 const prisma = new PrismaClient();
 
 async function measurePerformance<T>(name: string, fn: () => Promise<T>): Promise<number> {
@@ -13,7 +12,6 @@ async function measurePerformance<T>(name: string, fn: () => Promise<T>): Promis
 }
 
 async function main() {
-  // Check if there's test data
   const customerCount = await prisma.customer.count();
   
   console.log('\n===== TESTING STATISTICAL QUERIES PERFORMANCE =====\n');
@@ -32,7 +30,6 @@ async function main() {
     return;
   }
   
-  // Test 1: Unoptimized query (ORM-based)
   await measurePerformance('Account Type Distribution (ORM)', async () => {
     const accountTypeDistribution = await prisma.account.groupBy({
       by: ['accountType'],
@@ -47,7 +44,6 @@ async function main() {
     return accountTypeDistribution;
   });
   
-  // Test 2: Optimized raw SQL query
   await measurePerformance('Account Type Distribution (Optimized SQL)', async () => {
     const result = await prisma.$queryRaw`
       SELECT "accountType", COUNT(*) as count, SUM(balance) as total_balance
@@ -58,9 +54,7 @@ async function main() {
     return result;
   });
   
-  // Test 3: Complex query with joins (ORM-based)
   await measurePerformance('Customer Balance Summary (ORM)', async () => {
-    // Using Prisma ORM for complex joins and aggregations
     const customers = await prisma.customer.findMany({
       select: {
         id: true,
@@ -81,7 +75,6 @@ async function main() {
       }
     });
     
-    // Manual data transformation (this is expensive)
     const customerSummary = customers.map(customer => {
       const totalBalance = customer.accounts.reduce((sum, account) => sum + account.balance, 0);
       const totalTransactions = customer.accounts.reduce((sum, account) => sum + account._count.transactions, 0);
@@ -97,13 +90,11 @@ async function main() {
       };
     });
     
-    // Sort by total balance to simulate a real-world usage
     customerSummary.sort((a, b) => b.totalBalance - a.totalBalance);
     
-    return customerSummary.slice(0, 100); // Take top 100 customers
+    return customerSummary.slice(0, 100); 
   });
   
-  // Test 4: Optimized complex query with joins (Raw SQL)
   await measurePerformance('Customer Balance Summary (Optimized SQL)', async () => {
     const result = await prisma.$queryRaw`
       SELECT 
@@ -123,10 +114,7 @@ async function main() {
     return result;
   });
   
-  // Test 5: Complex time-based aggregation (ORM-based)
   await measurePerformance('Transaction Volume Over Time (ORM)', async () => {
-    // Get transaction counts per month using ORM
-    // This is inefficient as we need to pull all transactions and process in JS
     const allTransactions = await prisma.transaction.findMany({
       select: {
         createdAt: true,
@@ -138,7 +126,6 @@ async function main() {
       }
     });
     
-    // Group by month and transaction type
     type TransactionType = 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER' | 'PAYMENT' | 'REFUND' | 'FEE';
     
     interface MonthData {
@@ -171,7 +158,6 @@ async function main() {
         };
       }
       
-      // Type safe access
       const type = transaction.type as TransactionType;
       monthlyData[yearMonth][type] += transaction.amount;
       monthlyData[yearMonth].total += transaction.amount;
@@ -180,7 +166,6 @@ async function main() {
     return Object.values(monthlyData);
   });
   
-  // Test 6: Optimized time-based aggregation (Raw SQL)
   await measurePerformance('Transaction Volume Over Time (Optimized SQL)', async () => {
     const result = await prisma.$queryRaw`
       SELECT 

@@ -55,7 +55,7 @@ model Customer {
 
 model Account {
   id          String        @id @default(cuid())
-  accountType String      // e.g., "SAVINGS", "CHECKING"
+  accountType String      
   balance     Float       @default(0)
   customerId  String
   customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -72,7 +72,7 @@ model Account {
 model Transaction {
   id          String   @id @default(cuid())
   amount      Float
-  type        String   // e.g., "DEPOSIT", "WITHDRAWAL", "TRANSFER"
+  type        String   
   accountId   String
   account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
@@ -96,9 +96,9 @@ model ActivityLog {
   userId    String
   user      User       @relation(fields: [userId], references: [id])
   action    ActionType
-  entity    String     // The name of the entity (e.g., "Customer", "Account", "Transaction")
-  entityId  String     // The ID of the affected entity
-  details   String?    // Additional details about the action
+  entity    String     
+  entityId  String     
+  details   String?    
   timestamp DateTime   @default(now())
 
   @@index([userId])

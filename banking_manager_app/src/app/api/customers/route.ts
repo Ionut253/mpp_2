@@ -3,7 +3,6 @@ import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
-// Helper function to check if error is a Prisma unique constraint violation
 const isUniqueConstraintError = (error: unknown): error is PrismaClientKnownRequestError => {
   return (
     error instanceof PrismaClientKnownRequestError &&
@@ -12,7 +11,6 @@ const isUniqueConstraintError = (error: unknown): error is PrismaClientKnownRequ
   );
 };
 
-// Helper function to validate email format
 const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
@@ -25,7 +23,6 @@ export async function GET(request: Request) {
     const pageSize = parseInt(searchParams.get('pageSize') || '10');
     const search = searchParams.get('search') || '';
 
-    // Build where clause for search
     const where: Prisma.CustomerWhereInput = search
       ? {
           OR: [
@@ -37,11 +34,9 @@ export async function GET(request: Request) {
         }
       : {};
 
-    // Get total count for pagination
     const totalItems = await prisma.customer.count({ where });
     const totalPages = Math.ceil(totalItems / pageSize);
 
-    // Get paginated customers with their accounts
     const customers = await prisma.customer.findMany({
       where,
       include: {
@@ -83,10 +78,8 @@ export async function POST(request: Request) {
   try {
     const customerData = await request.json();
 
-    // Validation errors object
     const errors: Record<string, string> = {};
 
-    // Required fields validation
     if (!customerData.firstName?.trim()) {
       errors.firstName = 'First name is required';
     }
@@ -109,7 +102,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Return validation errors if any
     if (Object.keys(errors).length > 0) {
       return NextResponse.json(
         { success: false, errors },
@@ -117,7 +109,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if email already exists
     const existingCustomer = await prisma.customer.findUnique({
       where: { email: customerData.email.trim() }
     });
@@ -134,7 +125,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create customer
     const newCustomer = await prisma.customer.create({
       data: {
         firstName: customerData.firstName.trim(),
@@ -156,7 +146,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error in POST /api/customers:', error);
     
-    // Handle unique constraint violation (as a fallback)
     if (isUniqueConstraintError(error)) {
       const target = error.meta?.target as string[];
       return NextResponse.json(
@@ -190,10 +179,8 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Validation errors object
     const errors: Record<string, string> = {};
 
-    // Required fields validation
     if (!customerData.firstName?.trim()) {
       errors.firstName = 'First name is required';
     }
@@ -206,7 +193,6 @@ export async function PUT(request: Request) {
       errors.email = 'Invalid email format';
     }
 
-    // Return validation errors if any
     if (Object.keys(errors).length > 0) {
       return NextResponse.json(
         { success: false, errors },
@@ -214,7 +200,6 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Update customer
     const customer = await prisma.customer.update({
       where: { id },
       data: {
@@ -237,7 +222,6 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error('Error in PUT /api/customers:', error);
 
-    // Handle unique constraint violation
     if (isUniqueConstraintError(error)) {
       const target = error.meta?.target as string[];
       return NextResponse.json(
@@ -251,7 +235,6 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Handle case where customer is not found
     if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
       return NextResponse.json(
         { success: false, error: 'Customer not found' },
@@ -278,7 +261,6 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Check if customer exists and get their accounts
     const customer = await prisma.customer.findUnique({
       where: { id },
       include: {
@@ -297,7 +279,6 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Check if any accounts have transactions
     const accountsWithTransactions = customer.accounts.filter(account => account.transactions.length > 0);
     if (accountsWithTransactions.length > 0) {
       return NextResponse.json(
@@ -315,14 +296,11 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // If we get here, we can safely delete the customer's accounts (which have no transactions)
     await prisma.$transaction(async (tx) => {
-      // Delete all accounts first
       await tx.account.deleteMany({
         where: { customerId: id }
       });
 
-      // Then delete the customer
       await tx.customer.delete({
         where: { id }
       });

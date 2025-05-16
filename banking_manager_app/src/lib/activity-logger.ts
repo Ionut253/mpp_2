@@ -23,7 +23,7 @@ export async function logActivity({
     await prisma.activityLog.create({
       data: {
         userId,
-        action: action as any, // Type assertion as Prisma doesn't know our enum yet
+        action: action as any, 
         entity,
         entityId,
         details

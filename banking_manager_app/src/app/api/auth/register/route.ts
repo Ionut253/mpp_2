@@ -17,7 +17,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { email, password, firstName, lastName, role } = registerSchema.parse(body);
 
-    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email }
     });
@@ -29,11 +28,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user with associated customer in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create user
       const user = await tx.user.create({
@@ -44,7 +41,6 @@ export async function POST(request: Request) {
         }
       });
 
-      // Create customer for this user
       const customer = await tx.customer.create({
         data: {
           firstName,
@@ -54,7 +50,6 @@ export async function POST(request: Request) {
         }
       });
 
-      // Log the registration action
       await tx.activityLog.create({
         data: {
           userId: user.id,
@@ -68,7 +63,6 @@ export async function POST(request: Request) {
       return { user, customer };
     });
 
-    // Return user data (excluding password)
     return NextResponse.json({
       success: true,
       data: {
