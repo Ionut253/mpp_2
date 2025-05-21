@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
+// Import QueryMode directly
+type QueryMode = 'default' | 'insensitive';
+
 const customerSelect = {
   id: true,
   firstName: true,
@@ -34,12 +37,12 @@ export async function GET(request: Request) {
       where = {
         ...(search ? {
           OR: [
-            { accountType: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
+            { accountType: { contains: search, mode: 'insensitive' } },
             { customer: {
                 OR: [
-                  { firstName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
-                  { lastName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
-                  { email: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
+                  { firstName: { contains: search, mode: 'insensitive' } },
+                  { lastName: { contains: search, mode: 'insensitive' } },
+                  { email: { contains: search, mode: 'insensitive' } },
                 ],
               },
             },
