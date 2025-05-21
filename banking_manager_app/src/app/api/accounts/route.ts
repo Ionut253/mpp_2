@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     const ids = idsParam?.split(',').filter(id => id.trim() !== '');
 
 
-    let where: Prisma.AccountWhereInput = {};
+    let where = {} as any; // Using a type assertion as a quick fix
     
     if (ids && ids.length > 0) {
       where = { id: { in: ids } };
