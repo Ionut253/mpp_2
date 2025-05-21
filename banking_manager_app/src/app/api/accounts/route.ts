@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 const customerSelect = {
   id: true,
@@ -34,12 +34,12 @@ export async function GET(request: Request) {
       where = {
         ...(search ? {
           OR: [
-            { accountType: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { accountType: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
             { customer: {
                 OR: [
-                  { firstName: { contains: search, mode: Prisma.QueryMode.insensitive } },
-                  { lastName: { contains: search, mode: Prisma.QueryMode.insensitive } },
-                  { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                  { firstName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
+                  { lastName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
+                  { email: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
                 ],
               },
             },
@@ -267,4 +267,4 @@ export async function DELETE(request: Request) {
       { status: 500 }
     );
   }
-} 
+}
