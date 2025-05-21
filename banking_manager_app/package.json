@@ -15,7 +15,7 @@
     "test:performance": "ts-node --project tsconfig.seed.json scripts/test-statistics-performance.ts",
     "test:all": "npm run generate:test-data && npm run test:performance",
     "deploy": "node scripts/deploy.js",
-    "deploy:prod": "NODE_ENV=production node scripts/deploy.js"
+    "deploy:prod": "set NODE_ENV=production&& node scripts/deploy.js"
   },
   "dependencies": {
     "@prisma/client": "^5.10.2",
