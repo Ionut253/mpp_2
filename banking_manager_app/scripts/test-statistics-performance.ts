@@ -103,9 +103,9 @@ async function main() {
         accountTypes
       };
     });
-    customerSummary.sort((a, b) => b.totalBalance - a.totalBalance);
-    
-    return customerSummary.slice(0, 100); 
+    customerSummary.sort((a: { totalBalance: number }, b: { totalBalance: number }) => b.totalBalance - a.totalBalance);
+
+    return customerSummary.slice(0, 100);
   });
   
   await measurePerformance('Customer Balance Summary (Optimized SQL)', async () => {
