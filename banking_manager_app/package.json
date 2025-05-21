@@ -13,7 +13,9 @@
     "reset:admin": "npm run delete:admin && npm run create:admin",
     "generate:test-data": "ts-node --project tsconfig.seed.json scripts/generate-test-data.ts",
     "test:performance": "ts-node --project tsconfig.seed.json scripts/test-statistics-performance.ts",
-    "test:all": "npm run generate:test-data && npm run test:performance"
+    "test:all": "npm run generate:test-data && npm run test:performance",
+    "deploy": "node scripts/deploy.js",
+    "deploy:prod": "NODE_ENV=production node scripts/deploy.js"
   },
   "dependencies": {
     "@prisma/client": "^5.10.2",

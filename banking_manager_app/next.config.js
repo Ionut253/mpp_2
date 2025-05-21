@@ -2,11 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  poweredByHeader: false,
   images: {
-    unoptimized: true,
+    unoptimized: false,
     domains: ['localhost'],
     remotePatterns: [],
   },
+  compress: true,
+  productionBrowserSourceMaps: false,
 };
 
 module.exports = nextConfig; 
