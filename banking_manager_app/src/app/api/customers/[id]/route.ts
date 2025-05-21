@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@/generated/client/runtime/library';
 
 export async function PUT(
   request: Request,
@@ -94,7 +94,7 @@ export async function PUT(
   } catch (error) {
     console.error('Error in PUT /api/customers/[id]:', error);
     
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error instanceof PrismaClientKnownRequestError) {
       if (error.code === 'P2025') {
         return NextResponse.json(
           { success: false, error: 'Customer not found' },
@@ -145,7 +145,7 @@ export async function DELETE(
       }))
     });
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx : any) => {
       let deletedTransactions = 0;
       
       for (const account of customer.accounts) {
@@ -191,7 +191,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Error in DELETE /api/customers/[id]:', error);
     
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error instanceof PrismaClientKnownRequestError) {
       if (error.code === 'P2025') {
         return NextResponse.json(
           { success: false, error: 'Customer not found' },
