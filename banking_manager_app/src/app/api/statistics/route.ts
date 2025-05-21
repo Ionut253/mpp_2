@@ -19,12 +19,12 @@ export async function GET(request: Request) {
     const startDate = getStartDateForTimeframe(timeframe);
     
     // Build where clauses for filtering
-    const accountWhere: Prisma.AccountWhereInput = accountType 
+    const accountWhere: {} = accountType 
       ? { accountType } 
       : {};
-    
-    const transactionWhere: Prisma.TransactionWhereInput = startDate 
-      ? { 
+
+    const transactionWhere: {} = startDate
+      ? {
           createdAt: { gte: startDate },
           account: accountWhere
         } 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
@@ -23,13 +23,13 @@ export async function GET(request: Request) {
     const pageSize = parseInt(searchParams.get('pageSize') || '10');
     const search = searchParams.get('search') || '';
 
-    const where: Prisma.CustomerWhereInput = search
+    const where: {} = search
       ? {
           OR: [
-            { firstName: { contains: search, mode: Prisma.QueryMode.insensitive } },
-            { lastName: { contains: search, mode: Prisma.QueryMode.insensitive } },
-            { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
-            { phone: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { firstName: { contains: search, mode: 'insensitive' } },
+            { lastName: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+            { phone: { contains: search, mode: 'insensitive' } },
           ],
         }
       : {};
