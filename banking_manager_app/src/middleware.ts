@@ -21,8 +21,25 @@ const PUBLIC_PATHS = [
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:3001',
-  process.env.NEXT_PUBLIC_APP_URL
+  process.env.NEXT_PUBLIC_APP_URL,
+  'https://mpp-2-chi.vercel.app/', 
+  /^https:\/\/[^.]+\.vercel\.app$/
 ].filter(Boolean);
+
+// Helper function to add CORS headers to responses
+function addCorsHeaders(response: NextResponse, origin?: string | null): NextResponse {
+  if (origin) {
+    response.headers.set('Access-Control-Allow-Origin', origin);
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+  } else {
+    response.headers.set('Access-Control-Allow-Origin', '*');
+  }
+  
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  return response;
+}
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -31,11 +48,30 @@ export async function middleware(request: NextRequest) {
   // CORS and CSRF protection for API routes
   if (path.startsWith('/api/')) {
     // Check origin for CSRF protection
-    if (origin && !ALLOWED_ORIGINS.includes(origin)) {
-      return NextResponse.json(
-        { error: 'Invalid origin' },
-        { status: 403 }
-      );
+    if (origin) {
+      const isAllowed = ALLOWED_ORIGINS.some(allowedOrigin => {
+        if (typeof allowedOrigin === 'string') {
+          return allowedOrigin === origin;
+        }
+        // Check if it matches a regex pattern
+        if (allowedOrigin instanceof RegExp) {
+          return allowedOrigin.test(origin);
+        }
+        return false;
+      });
+
+      if (!isAllowed) {
+        return addCorsHeaders(NextResponse.json(
+          { error: 'Invalid origin' },
+          { status: 403 }
+        ), origin);
+      }
+    }
+
+    // For preflight OPTIONS requests, return CORS headers
+    if (request.method === 'OPTIONS') {
+      const response = new NextResponse(null, { status: 204 });
+      return addCorsHeaders(response, origin);
     }
 
     // Apply rate limiting
@@ -45,7 +81,7 @@ export async function middleware(request: NextRequest) {
 
     const rateLimitResponse = await rateLimit(request);
     if (rateLimitResponse.status === 429) {
-      return rateLimitResponse;
+      return addCorsHeaders(rateLimitResponse, origin);
     }
   }
 
@@ -60,10 +96,10 @@ export async function middleware(request: NextRequest) {
   if (!token) {
     // If accessing API route, return 401
     if (path.startsWith('/api/')) {
-      return NextResponse.json(
+      return addCorsHeaders(NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
-      );
+      ), origin);
     }
     // Otherwise redirect to login
     return NextResponse.redirect(new URL('/login', request.url));
@@ -86,10 +122,10 @@ export async function middleware(request: NextRequest) {
     // Check admin routes
     if ((path.startsWith('/api/admin/') || path.startsWith('/admin')) && payload.role !== 'ADMIN') {
       if (path.startsWith('/api/')) {
-        return NextResponse.json(
+        return addCorsHeaders(NextResponse.json(
           { error: 'Unauthorized' },
           { status: 403 }
-        );
+        ), origin);
       }
       return NextResponse.redirect(new URL('/customer', request.url));
     }
@@ -117,12 +153,17 @@ export async function middleware(request: NextRequest) {
       "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
     );
 
+    // Add CORS headers for API routes
+    if (path.startsWith('/api/')) {
+      addCorsHeaders(response, origin);
+    }
+
     return response;
   } catch (error) {
     console.error('Token verification error:', error);
     // If token is invalid, clear it and redirect to login
     const response = path.startsWith('/api/')
-      ? NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+      ? addCorsHeaders(NextResponse.json({ error: 'Invalid token' }, { status: 401 }), origin)
       : NextResponse.redirect(new URL('/login', request.url));
 
     response.cookies.delete('auth-token');
