@@ -56,7 +56,7 @@ export default async function AdminDashboard() {
   const user = getAuthUser();
   
   if (!user || !isAdmin()) {
-    redirect('/login');
+    redirect('/pages/login_page');
   }
 
   const [users, recentLogs] = await Promise.all([
@@ -156,7 +156,7 @@ export default async function AdminDashboard() {
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">
                       <Link 
-                        href={`/admin/users/${user.id}`}
+                        href={`/pages/admin/users/${user.id}`}
                         className="text-blue-500 hover:text-blue-700 mr-2"
                       >
                         View
@@ -169,7 +169,7 @@ export default async function AdminDashboard() {
           </div>
           <div className="mt-4">
             <Link
-              href="/admin/users"
+              href="/pages/admin/users"
               className="text-blue-500 hover:text-blue-700"
             >
               View All Users
@@ -233,7 +233,7 @@ export default async function AdminDashboard() {
         </div>
         <div className="mt-4">
           <Link
-            href="/admin/audit"
+            href="/pages/admin/audit"
             className="text-blue-500 hover:text-blue-700"
           >
             View All Activity Logs

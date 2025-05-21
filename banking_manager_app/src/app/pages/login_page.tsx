@@ -37,9 +37,9 @@ export default function LoginPage() {
 
       // Navigate to appropriate dashboard based on user role
       if (data.data.role === 'ADMIN') {
-        router.push('/admin');
+        router.push('/pages/admin');
       } else {
-        router.push('/customer');
+        router.push('/pages/customer_dashboard');
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -125,7 +125,7 @@ export default function LoginPage() {
 
             <div className="mt-6 grid grid-cols-2 gap-3">
               <Link
-                href="/register"
+                href="/pages/register_page"
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
               >
                 Register

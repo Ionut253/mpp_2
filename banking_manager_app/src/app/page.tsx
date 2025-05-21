@@ -760,19 +760,19 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold mb-4">Banking Manager Dashboard</h1>
         <div className="flex gap-4">
           <a 
-            href="/admin" 
+            href="/pages/admin" 
             className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded"
           >
             Admin Dashboard
           </a>
           <a 
-            href="/customer" 
+            href="/pages/customer_dashboard" 
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
           >
             Customer Dashboard
           </a>
           <a 
-            href="/login" 
+            href="/pages/login_page" 
             className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
           >
             Login

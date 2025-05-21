@@ -74,24 +74,24 @@ export default function CustomerDashboard() {
   };
 
   const handleAddAccount = () => {
-    router.push('/customer/accounts/new');
+    router.push('/pages/accounts_page');
   };
 
   const handleEditProfile = () => {
-    router.push('/customer/profile/edit');
+    router.push('/pages/customer_profile');
   };
 
   const handleNewTransaction = (accountId: string) => {
-    router.push(`/customer/transactions/new?accountId=${accountId}`);
+    router.push(`/pages/new_transaction_page?accountId=${accountId}`);
   };
 
   const handleViewAccountDetails = (accountId: string) => {
     // For now, we'll just show the transactions for this account
-    router.push(`/customer/transactions?accountId=${accountId}`);
+    router.push(`/pages/transactions_page?accountId=${accountId}`);
   };
 
   const handleViewAllTransactions = () => {
-    router.push('/customer/transactions');
+    router.push('/pages/transactions_page');
   };
 
   if (isLoading) {
