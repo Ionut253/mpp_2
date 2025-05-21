@@ -75,7 +75,21 @@ async function main() {
       }
     });
     
-    const customerSummary = customers.map(customer => {
+    interface CustomerWithAccounts {
+      id: string;
+      firstName: string;
+      lastName: string;
+      accounts: {
+        id: string;
+        accountType: string;
+        balance: number;
+        _count: {
+          transactions: number;
+        }
+      }[];
+    }
+
+    const customerSummary = customers.map((customer: CustomerWithAccounts) => {
       const totalBalance = customer.accounts.reduce((sum, account) => sum + account.balance, 0);
       const totalTransactions = customer.accounts.reduce((sum, account) => sum + account._count.transactions, 0);
       const accountTypes = customer.accounts.map(a => a.accountType);
@@ -89,7 +103,6 @@ async function main() {
         accountTypes
       };
     });
-    
     customerSummary.sort((a, b) => b.totalBalance - a.totalBalance);
     
     return customerSummary.slice(0, 100); 
