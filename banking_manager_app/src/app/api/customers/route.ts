@@ -285,7 +285,7 @@ export async function DELETE(request: Request) {
         { 
           error: 'Cannot delete customer with active accounts. Please delete all transactions and accounts first.',
           details: {
-            accountsWithTransactions: accountsWithTransactions.map(account => ({
+            accountsWithTransactions: accountsWithTransactions.map((account: any) => ({
               id: account.id,
               type: account.accountType,
               transactionCount: account.transactions.length
