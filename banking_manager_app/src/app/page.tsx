@@ -10,8 +10,8 @@ import { EditTransactionForm } from '@/components/transactions/EditTransactionFo
 import { AddCustomerForm } from '@/components/customers/AddCustomerForm';
 import { AddTransactionForm } from '@/components/transactions/AddTransactionForm';
 import { CustomerTable } from '@/components/customers/CustomerTable';
-import type { Customer, Transaction } from '@prisma/client';
 import { type AccountWithCustomer, type Account } from '@/types/account';
+import { Customer, Transaction } from '@/generated/client/default';
 
 interface DeleteError {
   error: string;
