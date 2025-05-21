@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -10,7 +10,8 @@ type Account = {
   balance: number;
 };
 
-export default function NewTransactionPage() {
+// Create a client component that uses useSearchParams
+function NewTransactionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedAccountId = searchParams.get('accountId');
@@ -96,7 +97,7 @@ export default function NewTransactionPage() {
       }
 
       // Redirect back to the customer dashboard
-      router.push('/customer');
+      router.push('/pages/customer_dashboard');
     } catch (error) {
       console.error('Error creating transaction:', error);
       setError(error instanceof Error ? error.message : 'An error occurred while creating the transaction');
@@ -111,7 +112,7 @@ export default function NewTransactionPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-800">New Transaction</h1>
           <Link 
-            href="/customer" 
+            href="/pages/customer_dashboard" 
             className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
           >
             Back to Dashboard
@@ -133,7 +134,7 @@ export default function NewTransactionPage() {
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
           <p>You don't have any accounts yet. Please create an account first.</p>
           <Link 
-            href="/customer/accounts/new" 
+            href="/pages/accounts_page" 
             className="inline-block mt-2 text-blue-600 hover:text-blue-800 underline"
           >
             Open a New Account
@@ -234,5 +235,23 @@ export default function NewTransactionPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// This loading component will be shown during the suspended state
+function LoadingFallback() {
+  return (
+    <div className="flex justify-center items-center h-screen">
+      <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+  );
+}
+
+// This is the main exported component with Suspense boundary
+export default function NewTransactionPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <NewTransactionContent />
+    </Suspense>
   );
 } 

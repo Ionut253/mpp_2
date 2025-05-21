@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -23,7 +23,8 @@ interface Pagination {
   totalPages: number;
 }
 
-export default function TransactionsPage() {
+// Create a client component that uses useSearchParams
+function TransactionsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const accountId = searchParams.get('accountId');
@@ -103,7 +104,7 @@ export default function TransactionsPage() {
     const params = new URLSearchParams(searchParams.toString());
     params.set('page', newPage.toString());
     
-    router.push(`/customer/transactions?${params.toString()}`);
+    router.push(`/pages/transactions_page?${params.toString()}`);
   };
 
   const getAccountType = (transaction: TransactionWithAccount) => {
@@ -125,13 +126,13 @@ export default function TransactionsPage() {
           </h1>
           <div className="space-x-2">
             <Link 
-              href="/customer/transactions/new" 
+              href="/pages/new_transaction_page" 
               className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
             >
               New Transaction
             </Link>
             <Link 
-              href="/customer" 
+              href="/pages/customer_dashboard" 
               className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
             >
               Back to Dashboard
@@ -154,7 +155,7 @@ export default function TransactionsPage() {
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
           <p>{accountId ? 'This account has no transactions yet.' : 'You have no transactions yet.'}</p>
           <Link 
-            href="/customer/transactions/new" 
+            href="/pages/new_transaction_page" 
             className="inline-block mt-2 text-blue-600 hover:text-blue-800 underline"
           >
             Create Your First Transaction
@@ -266,5 +267,23 @@ export default function TransactionsPage() {
         </>
       )}
     </div>
+  );
+}
+
+// This loading component will be shown during the suspended state
+function LoadingFallback() {
+  return (
+    <div className="flex justify-center items-center h-screen">
+      <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+  );
+}
+
+// This is the main exported component with Suspense boundary
+export default function TransactionsPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <TransactionsContent />
+    </Suspense>
   );
 } 
