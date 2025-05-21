@@ -137,37 +137,23 @@ export async function DELETE(
       );
     }
 
-    console.log('Found customer with:', {
-      accountCount: customer.accounts.length,
-      transactionCounts: customer.accounts.map(a => ({
-        accountId: a.id,
-        transactionCount: a.transactions.length
-      }))
-    });
-
     const result = await prisma.$transaction(async (tx : any) => {
       let deletedTransactions = 0;
       
       for (const account of customer.accounts) {
-        console.log(`Deleting transactions for account ${account.id}...`);
         const { count } = await tx.transaction.deleteMany({
           where: { accountId: account.id }
         });
         deletedTransactions += count;
-        console.log(`Deleted ${count} transactions from account ${account.id}`);
       }
 
-      console.log('Deleting accounts...');
       const { count: deletedAccounts } = await tx.account.deleteMany({
         where: { customerId: id }
       });
-      console.log(`Deleted ${deletedAccounts} accounts`);
 
-      console.log('Deleting customer...');
       const deletedCustomer = await tx.customer.delete({
         where: { id }
       });
-      console.log('Customer deleted successfully');
 
       return {
         customer: deletedCustomer,
@@ -175,8 +161,6 @@ export async function DELETE(
         deletedTransactions
       };
     });
-
-    console.log('Deletion completed successfully:', result);
 
     return NextResponse.json({ 
       success: true,
