@@ -243,7 +243,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await prisma.$transaction(async (tx): Promise<void> => {
+    await prisma.$transaction(async (tx : any) => {
       if (account.transactions.length > 0) {
         await tx.transaction.deleteMany({
           where: { accountId: id }
