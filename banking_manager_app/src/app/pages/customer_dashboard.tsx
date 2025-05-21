@@ -36,7 +36,7 @@ export default function CustomerDashboard() {
       if (!profileResponse.ok) {
         // If unauthorized, redirect to login
         if (profileResponse.status === 401) {
-          router.push('/login');
+          router.push('/pages/login_page');
           return;
         }
         throw new Error('Failed to fetch profile');
