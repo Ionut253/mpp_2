@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/client"
@@ -14,11 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  USER
-  ADMIN
-}
-
 model User {
   id              String          @id @default(cuid())
   email           String          @unique
@@ -26,10 +15,10 @@ model User {
   role            UserRole        @default(USER)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
-  customer        Customer?
   activityLogs    ActivityLog[]
-  monitoredUsers  MonitoredUser[] @relation("MonitoredUser")
+  customer        Customer?
   monitoringAdded MonitoredUser[] @relation("MonitoringAddedBy")
+  monitoredUsers  MonitoredUser[] @relation("MonitoredUser")
 
   @@index([email])
   @@index([role])
@@ -37,16 +26,16 @@ model User {
 
 model Customer {
   id        String    @id @default(cuid())
-  firstName String
-  lastName  String
   email     String    @unique
   phone     String?
   address   String?
-  dob       DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  accounts  Account[]
+  dob       DateTime?
+  firstName String
+  lastName  String
   userId    String?   @unique
+  accounts  Account[]
   user      User?     @relation(fields: [userId], references: [id])
 
   @@index([firstName, lastName])
@@ -58,9 +47,9 @@ model Account {
   accountType  String
   balance      Float         @default(0)
   customerId   String
-  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   transactions Transaction[]
 
   @@index([customerId])
@@ -74,9 +63,9 @@ model Transaction {
   amount      Float
   type        String
   accountId   String
-  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   description String?
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@index([accountId])
   @@index([type])
@@ -84,22 +73,15 @@ model Transaction {
   @@index([amount])
 }
 
-enum ActionType {
-  CREATE
-  READ
-  UPDATE
-  DELETE
-}
-
 model ActivityLog {
   id        String     @id @default(cuid())
   userId    String
-  user      User       @relation(fields: [userId], references: [id])
   action    ActionType
   entity    String
   entityId  String
   details   String?
   timestamp DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([action])
@@ -110,15 +92,27 @@ model ActivityLog {
 model MonitoredUser {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation("MonitoredUser", fields: [userId], references: [id])
   reason    String
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   addedById String
   addedBy   User     @relation("MonitoringAddedBy", fields: [addedById], references: [id])
+  user      User     @relation("MonitoredUser", fields: [userId], references: [id])
 
   @@index([userId])
   @@index([isActive])
   @@index([createdAt])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ActionType {
+  CREATE
+  READ
+  UPDATE
+  DELETE
 }
