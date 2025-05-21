@@ -211,7 +211,7 @@ export async function DELETE(
     }
 
     // Begin transaction to delete user and related records
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx : any ) => {
       // Delete activity logs first (due to foreign key constraints)
       await tx.activityLog.deleteMany({
         where: { userId }

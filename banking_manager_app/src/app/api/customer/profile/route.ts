@@ -91,7 +91,7 @@ export async function PUT(request: Request) {
     const { firstName, lastName, email, phone, address, dob } = data;
     
     // Update customer in a transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx : any) => {
       // Update email in User model if it has changed
       if (email && email !== dbUser.email) {
         // Check if email is already taken by another user

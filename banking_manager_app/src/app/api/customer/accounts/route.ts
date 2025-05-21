@@ -104,7 +104,7 @@ export async function POST(request: Request) {
     }
 
     // Create the account in a transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx : any) => {
       // Create account
       const account = await tx.account.create({
         data: {

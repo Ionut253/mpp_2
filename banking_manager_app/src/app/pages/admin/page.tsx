@@ -66,7 +66,7 @@ export default async function AdminDashboard() {
 
   // Group logs by entity
   const logsByEntity: Record<string, number> = {};
-  recentLogs.forEach(log => {
+  recentLogs.forEach((log:any) => {
     logsByEntity[log.entity] = (logsByEntity[log.entity] || 0) + 1;
   });
 
@@ -141,7 +141,7 @@ export default async function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {users.map((user) => (
+                {users.map((user:any) => (
                   <tr key={user.id}>
                     <td className="px-4 py-2 whitespace-nowrap">{user.email}</td>
                     <td className="px-4 py-2 whitespace-nowrap">
@@ -202,7 +202,7 @@ export default async function AdminDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {recentLogs.map((log) => (
+              {recentLogs.map((log:any) => (
                 <tr key={log.id}>
                   <td className="px-4 py-2 whitespace-nowrap text-sm">
                     {new Date(log.timestamp).toLocaleString()}

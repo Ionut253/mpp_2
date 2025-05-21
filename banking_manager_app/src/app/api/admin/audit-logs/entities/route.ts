@@ -20,7 +20,7 @@ export async function GET() {
       ORDER BY "entity" ASC
     `;
 
-    const entityList = entities.map(item => item.entity);
+    const entityList = entities.map((item:any) => item.entity);
 
     return NextResponse.json({
       success: true,

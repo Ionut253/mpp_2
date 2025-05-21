@@ -44,7 +44,7 @@ export async function GET(request: Request) {
       select: { id: true }
     });
     
-    const accountIds = accounts.map(acc => acc.id);
+    const accountIds = accounts.map((acc:any) => acc.id);
     
     if (accountIds.length === 0) {
       return NextResponse.json({
@@ -191,7 +191,7 @@ export async function POST(request: Request) {
     }
     
     // Create the transaction and update account balance in a transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx : any) => {
       // Update account balance
       const updatedBalance = type === 'DEPOSIT' 
         ? account.balance + transactionAmount 
