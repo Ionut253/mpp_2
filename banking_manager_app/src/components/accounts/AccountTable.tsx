@@ -1,4 +1,3 @@
-import { type Customer } from '@prisma/client';
 import { type ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '../shared/DataTable';
 import { format } from 'date-fns';

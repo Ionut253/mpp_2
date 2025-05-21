@@ -1,5 +1,5 @@
+import { Account } from '@/generated/client/default';
 import { useState } from 'react';
-import type { Account } from '@prisma/client';
 
 // Import standardized account types
 const ACCOUNT_TYPES = {

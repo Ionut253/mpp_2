@@ -1,7 +1,6 @@
+import { Customer } from '@/generated/client/default';
 import { useState } from 'react';
-import type { Account, Customer } from '@prisma/client';
 
-// Define standardized account types
 const ACCOUNT_TYPES = {
   SAVINGS: {
     value: 'SAVINGS',

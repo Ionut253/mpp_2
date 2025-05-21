@@ -1,5 +1,5 @@
+import { Transaction } from '@/generated/client/default';
 import { useState } from 'react';
-import { type Transaction } from '@prisma/client';
 
 interface EditTransactionFormProps {
   transaction: Transaction;

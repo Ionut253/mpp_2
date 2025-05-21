@@ -1,5 +1,5 @@
+import { Customer } from '@/generated/client/default';
 import { useState } from 'react';
-import type { Customer } from '@prisma/client';
 
 interface AddCustomerFormProps {
   onSave: (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
