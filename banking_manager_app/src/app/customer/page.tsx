@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Customer, Account, Transaction } from '@prisma/client';
+import { Account, Transaction } from '@prisma/client';
+import { Customer } from '@/generated/client/default';
 
 // Extended type to include the account relationship
 interface TransactionWithAccount extends Transaction {
