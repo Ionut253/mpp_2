@@ -296,7 +296,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx : any) => {
       await tx.account.deleteMany({
         where: { customerId: id }
       });
