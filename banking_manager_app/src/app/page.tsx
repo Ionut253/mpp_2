@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CustomerTable } from '@/components/customers/CustomerTable';
 import { AccountTable } from '@/components/accounts/AccountTable';
 import { TransactionTable } from '@/components/transactions/TransactionTable';
 import { EditCustomerForm } from '@/components/customers/EditCustomerForm';
@@ -10,6 +9,7 @@ import { AddAccountForm } from '@/components/accounts/AddAccountForm';
 import { EditTransactionForm } from '@/components/transactions/EditTransactionForm';
 import { AddCustomerForm } from '@/components/customers/AddCustomerForm';
 import { AddTransactionForm } from '@/components/transactions/AddTransactionForm';
+import { CustomerTable } from '@/components/customers/CustomerTable';
 import type { Customer, Transaction } from '@prisma/client';
 import { type AccountWithCustomer, type Account } from '@/types/account';
 

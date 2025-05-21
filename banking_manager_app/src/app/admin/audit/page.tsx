@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 interface AuditLog {
@@ -406,7 +406,7 @@ export default function AuditLogPage() {
                   
                   {/* Page numbers */}
                   {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                    let pageNum;
+                    let pageNum: number;
                     if (pagination.totalPages <= 5) {
                       pageNum = i + 1;
                     } else if (pagination.page <= 3) {

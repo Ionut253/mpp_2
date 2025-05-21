@@ -23,7 +23,11 @@ export function EditCustomerForm({ customer, onSave, onCancel }: EditCustomerFor
     setError(null);
 
     try {
-      await onSave(formData);
+      const dataToSave = {
+        ...formData,
+        dob: formData.dob ? new Date(formData.dob) : null
+      };
+      await onSave(dataToSave);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update customer');
     }

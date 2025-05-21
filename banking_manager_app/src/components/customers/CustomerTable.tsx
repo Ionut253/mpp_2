@@ -1,15 +1,14 @@
-import { type CustomerWithAccounts } from '@/types/customer';
 import { type ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '../shared/DataTable';
 import { format } from 'date-fns';
 import { Edit, Trash, Plus, CreditCard, Receipt } from 'lucide-react';
 
 interface CustomerTableProps {
-  customers: CustomerWithAccounts[];
-  onEdit: (customer: CustomerWithAccounts) => void;
-  onDelete: (customer: CustomerWithAccounts) => void;
-  onAddAccount: (customer: CustomerWithAccounts) => void;
-  onAddTransaction: (customer: CustomerWithAccounts) => void;
+  customers: any[];
+  onEdit: (customer: any) => void;
+  onDelete: (customer: any) => void;
+  onAddAccount: (customer: any) => void;
+  onAddTransaction: (customer: any) => void;
   onAddCustomer: () => void;
   currentPage: number;
   totalPages: number;
@@ -31,7 +30,7 @@ export function CustomerTable({
   onSearch,
   isLoading,
 }: CustomerTableProps) {
-  const columns: ColumnDef<CustomerWithAccounts>[] = [
+  const columns: ColumnDef<any>[] = [
     {
       accessorKey: 'firstName',
       header: 'First Name',
@@ -57,7 +56,7 @@ export function CustomerTable({
       id: 'totalBalance',
       header: 'Total Balance',
       cell: ({ row }) => {
-        const totalBalance = row.original.accounts?.reduce((sum, account) => sum + account.balance, 0) || 0;
+        const totalBalance = row.original.accounts?.reduce((sum: any, account: { balance: any; }) => sum + account.balance, 0) || 0;
         return (
           <span className={totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}>
             {new Intl.NumberFormat('en-US', {

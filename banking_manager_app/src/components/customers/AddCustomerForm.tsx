@@ -13,7 +13,8 @@ export function AddCustomerForm({ onSave, onCancel }: AddCustomerFormProps) {
     email: '',
     phone: null as string | null,
     address: null as string | null,
-    dob: null as Date | null
+    dob: null as Date | null,
+    userId: null as string | null
   });
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
