@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../../generated/client';
 
 // Import QueryMode directly
 type QueryMode = 'default' | 'insensitive';

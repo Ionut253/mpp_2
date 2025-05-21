@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '../../../generated/client';
 import prisma from '@/lib/prisma';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { PrismaClientKnownRequestError } from '../../../generated/client/runtime/library';
 
 const isUniqueConstraintError = (error: unknown): error is PrismaClientKnownRequestError => {
   return (

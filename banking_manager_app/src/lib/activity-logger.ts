@@ -1,5 +1,5 @@
 import prisma from './prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/client';
 
 // We need to use the enum values directly since the generated type might not be available yet
 export type ActionType = 'CREATE' | 'READ' | 'UPDATE' | 'DELETE';

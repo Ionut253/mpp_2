@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
-import { PrismaClientKnownRequestError } from '@/generated/client/runtime/library';
+import { Prisma } from '../../../../generated/client';
+import { PrismaClientKnownRequestError } from '../../../../generated/client/runtime/library';
 
 export async function DELETE(
   request: Request,
