@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 export async function PUT(
   request: Request,
@@ -68,7 +69,7 @@ export async function PUT(
     console.error('Error in PUT /api/accounts/[id]:', error);
     
     // Check for specific Prisma errors
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error instanceof PrismaClientKnownRequestError) {
       if (error.code === 'P2025') {
         return NextResponse.json(
           { success: false, error: 'Account not found' },
@@ -82,4 +83,4 @@ export async function PUT(
       { status: 500 }
     );
   }
-} 
+}
