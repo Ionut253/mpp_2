@@ -1,5 +1,5 @@
+import { Account, Customer } from '@/generated/client/default';
 import { useState } from 'react';
-import type { Account, Customer } from '@prisma/client';
 
 interface AddTransactionFormProps {
   customer: Customer;
