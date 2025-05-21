@@ -279,7 +279,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const accountsWithTransactions = customer.accounts.filter(account => account.transactions.length > 0);
+    const accountsWithTransactions = customer.accounts.filter((account: any) => account.transactions.length > 0);
     if (accountsWithTransactions.length > 0) {
       return NextResponse.json(
         { 
