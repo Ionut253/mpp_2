@@ -11,19 +11,19 @@ export async function GET(request: Request) {
 
     console.log('Transactions API request params:', { page, pageSize, search });
 
-    const where: Prisma.TransactionWhereInput = search
+    const where: {} = search
       ? {
           OR: [
-            { type: { contains: search, mode: Prisma.QueryMode.insensitive } },
-            { description: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { type: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
             { account: {
                 OR: [
-                  { accountType: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                  { accountType: { contains: search, mode: 'insensitive' } },
                   { customer: {
                       OR: [
-                        { firstName: { contains: search, mode: Prisma.QueryMode.insensitive } },
-                        { lastName: { contains: search, mode: Prisma.QueryMode.insensitive } },
-                        { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                        { firstName: { contains: search, mode: 'insensitive' } },
+                        { lastName: { contains: search, mode: 'insensitive' } },
+                        { email: { contains: search, mode: 'insensitive' } },
                       ],
                     },
                   },
@@ -68,7 +68,7 @@ export async function GET(request: Request) {
 
     console.log(`Found ${transactions.length} transactions`);
 
-    const accountIds = transactions.map(t => t.accountId);
+    const accountIds = transactions.map((t: any) => t.accountId);
     console.log('Transaction account IDs:', accountIds);
 
     return NextResponse.json({
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await prisma.$transaction(async (prisma) => {
+    const result = await prisma.$transaction(async (prisma: any) => {
       const newTransaction = await prisma.transaction.create({
         data: {
           type: transactionData.type,
@@ -289,7 +289,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       await tx.account.update({
         where: { id: transaction.accountId },
         data: {

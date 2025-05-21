@@ -26,7 +26,7 @@ export async function DELETE(
     }
 
     // Start a transaction to update account balance and delete transaction
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx : any) => {
       // Update account balance
       await tx.account.update({
         where: { id: transaction.accountId },
