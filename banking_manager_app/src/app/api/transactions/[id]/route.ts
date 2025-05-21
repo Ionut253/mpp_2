@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@/generated/client/runtime/library';
 
 export async function DELETE(
   request: Request,
@@ -101,7 +102,7 @@ export async function PUT(
     const balanceAdjustment = newBalanceEffect - oldBalanceEffect;
 
     // Update transaction and account balance in a transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx : any) => {
       // Update the transaction
       const updatedTransaction = await tx.transaction.update({
         where: { id },
@@ -137,7 +138,7 @@ export async function PUT(
     console.error('Error in PUT /api/transactions/[id]:', error);
     
     // Check for specific Prisma errors
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error instanceof PrismaClientKnownRequestError) {
       if (error.code === 'P2025') {
         return NextResponse.json(
           { success: false, error: 'Transaction not found' },
