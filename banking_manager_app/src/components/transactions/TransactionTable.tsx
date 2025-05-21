@@ -1,10 +1,10 @@
-import { type Transaction } from '@prisma/client';
 import { type ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '../shared/DataTable';
 import { format } from 'date-fns';
 import { Edit, Trash, AlertTriangle } from 'lucide-react';
 import { type AccountWithCustomer } from '@/types/account';
 import { useEffect } from 'react';
+import { Transaction } from '@/generated/client/default';
 
 interface TransactionTableProps {
   transactions: Transaction[];
