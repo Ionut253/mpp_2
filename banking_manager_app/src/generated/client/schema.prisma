@@ -9,16 +9,19 @@ datasource db {
 }
 
 model User {
-  id              String          @id @default(cuid())
-  email           String          @unique
-  password        String
-  role            UserRole        @default(USER)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  activityLogs    ActivityLog[]
-  customer        Customer?
-  monitoringAdded MonitoredUser[] @relation("MonitoringAddedBy")
-  monitoredUsers  MonitoredUser[] @relation("MonitoredUser")
+  id                 String          @id @default(cuid())
+  email              String          @unique
+  password           String
+  role               UserRole        @default(USER)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  twoFactorEnabled   Boolean         @default(false)
+  verificationCode   String?
+  verificationExpiry DateTime?
+  activityLogs       ActivityLog[]
+  customer           Customer?
+  monitoringAdded    MonitoredUser[] @relation("MonitoringAddedBy")
+  monitoredUsers     MonitoredUser[] @relation("MonitoredUser")
 
   @@index([email])
   @@index([role])
