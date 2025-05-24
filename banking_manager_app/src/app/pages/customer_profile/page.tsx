@@ -97,7 +97,7 @@ export default function EditProfilePage() {
       }
 
       // Redirect back to the customer dashboard
-      router.push('/customer');
+      router.push('/pages/customer_dashboard');
     } catch (error) {
       console.error('Error updating profile:', error);
       setError(error instanceof Error ? error.message : 'An error occurred while updating your profile');
@@ -112,7 +112,7 @@ export default function EditProfilePage() {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-800">Edit Profile</h1>
           <Link 
-            href="/customer" 
+            href="/pages/customer_dashboard" 
             className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
           >
             Back to Dashboard
@@ -130,7 +130,7 @@ export default function EditProfilePage() {
         <div className="flex justify-center items-center py-8">
           <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
         </div>
-      ) : !profile ? (
+      ) : profile === null ? (
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
           <p>Could not load your profile. Please try refreshing the page.</p>
         </div>

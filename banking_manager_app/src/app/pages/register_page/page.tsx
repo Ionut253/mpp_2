@@ -62,7 +62,7 @@ export default function RegisterPage() {
       }
 
       // Redirect to login page
-      router.push('/login?registered=true');
+      router.push('/pages/login_page?registered=true');
     } catch (err) {
       console.error('Registration error:', err);
       setError(err instanceof Error ? err.message : 'Failed to register');

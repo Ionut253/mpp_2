@@ -19,6 +19,7 @@ export default function CustomerDashboard() {
   const [transactions, setTransactions] = useState<TransactionWithAccount[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     // Fetch customer data when component mounts
@@ -51,14 +52,14 @@ export default function CustomerDashboard() {
       setCustomer(profileData.data.customer);
       
       // Get customer accounts
-      const accountsResponse = await fetch(`/api/customer/accounts`);
+      const accountsResponse = await fetch('/api/customer/accounts');
       const accountsData = await accountsResponse.json();
       
       if (accountsResponse.ok && accountsData.success) {
         setAccounts(accountsData.data.accounts);
         
         // Get recent transactions
-        const transactionsResponse = await fetch(`/api/customer/transactions?limit=10`);
+        const transactionsResponse = await fetch('/api/customer/transactions?limit=10');
         const transactionsData = await transactionsResponse.json();
         
         if (transactionsResponse.ok && transactionsData.success) {
@@ -94,6 +95,26 @@ export default function CustomerDashboard() {
     router.push('/pages/transactions_page');
   };
 
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to logout');
+      }
+
+      router.push('/pages/login_page');
+    } catch (error) {
+      console.error('Logout error:', error);
+      setError('Failed to logout. Please try again.');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -114,12 +135,13 @@ export default function CustomerDashboard() {
             >
               Main Dashboard
             </Link>
-            <Link 
-              href="/api/auth/logout" 
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+            <button 
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded disabled:opacity-50"
             >
-              Logout
-            </Link>
+              {isLoggingOut ? 'Logging out...' : 'Logout'}
+            </button>
           </div>
         </div>
         {customer && (
