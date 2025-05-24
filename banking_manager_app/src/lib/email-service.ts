@@ -50,6 +50,34 @@ export function generateVerificationCode(): string {
   return code;
 }
 
+async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, delay = 2000): Promise<boolean> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`SendGrid attempt ${attempt} of ${maxRetries}...`);
+      await sgMail.send(msg);
+      console.log('Email sent successfully via SendGrid');
+      return true;
+    } catch (error: any) {
+      console.error(`SendGrid attempt ${attempt} failed:`, error.message);
+      
+      // Check if it's a throttling error
+      if (error.response?.body?.errors?.[0]?.message?.includes('throttled')) {
+        console.log(`Throttling detected, waiting ${delay}ms before retry...`);
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+          // Increase delay for next attempt
+          delay *= 2;
+          continue;
+        }
+      }
+      
+      // If it's not a throttling error or we're out of retries, give up
+      return false;
+    }
+  }
+  return false;
+}
+
 export async function sendVerificationCode(
   to: string,
   code: string
@@ -86,7 +114,7 @@ export async function sendVerificationCode(
       const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@yourdomain.com';
       console.log('Sending from:', fromEmail);
 
-      // Use SendGrid in production
+      // Use SendGrid in production with retry mechanism
       const msg = {
         to,
         from: fromEmail,
@@ -94,9 +122,7 @@ export async function sendVerificationCode(
         html,
       };
 
-      console.log('Sending email via SendGrid...');
-      await sgMail.send(msg);
-      console.log('Email sent successfully via SendGrid to:', to);
+      return await sendWithRetry(msg);
     } else {
       console.log('Using Ethereal for development email delivery');
       // Use Ethereal in development
@@ -121,8 +147,8 @@ export async function sendVerificationCode(
       console.log('Development email sent successfully');
       console.log('Preview URL:', previewUrl);
       console.log('Message ID:', info.messageId);
+      return true;
     }
-    return true;
   } catch (error) {
     console.error('Error sending email:', error);
     if (error instanceof Error) {
