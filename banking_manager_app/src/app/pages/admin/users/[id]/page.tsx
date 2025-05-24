@@ -296,7 +296,7 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
           <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
             <h3 className="text-lg font-medium leading-6 text-gray-900">Customer Information</h3>
             <Link
-              href={`/admin/customers/${user.customer.id}`}
+              href={`/pages/admin/customers/${user.customer.id}`}
               className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
             >
               View Full Profile

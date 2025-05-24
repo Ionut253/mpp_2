@@ -68,9 +68,9 @@ function AuditIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 const navigation: NavItem[] = [
-  { name: 'Users', href: '/admin/users', icon: UsersIcon },
-  { name: 'Monitoring', href: '/admin/monitoring', icon: MonitorIcon },
-  { name: 'Audit Log', href: '/admin/audit', icon: AuditIcon },
+  { name: 'Users', href: '/pages/admin/users', icon: UsersIcon },
+  { name: 'Monitoring', href: '/pages/admin/monitoring', icon: MonitorIcon },
+  { name: 'Audit Log', href: '/pages/admin/audit', icon: AuditIcon },
 ];
 
 export default function AdminLayout({
@@ -93,7 +93,7 @@ export default function AdminLayout({
         throw new Error('Failed to logout');
       }
 
-      router.push('/login');
+      router.push('/pages/login_page');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
