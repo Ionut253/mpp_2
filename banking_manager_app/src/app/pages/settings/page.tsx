@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 export default function SettingsPage() {
   const router = useRouter();
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isToggling, setIsToggling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -15,18 +16,18 @@ export default function SettingsPage() {
       .then(res => res.json())
       .then(data => {
         setIs2FAEnabled(data.twoFactorEnabled);
-        setIsLoading(false);
+        setIsInitialLoading(false);
       })
       .catch(err => {
         console.error('Error fetching 2FA status:', err);
         setError('Failed to load settings');
-        setIsLoading(false);
+        setIsInitialLoading(false);
       });
   }, []);
 
   const toggle2FA = async () => {
     try {
-      setIsLoading(true);
+      setIsToggling(true);
       setError(null);
 
       const response = await fetch('/api/auth/toggle-2fa', {
@@ -47,7 +48,7 @@ export default function SettingsPage() {
       console.error('Error toggling 2FA:', err);
       setError(err instanceof Error ? err.message : 'Failed to toggle 2FA');
     } finally {
-      setIsLoading(false);
+      setIsToggling(false);
     }
   };
 
@@ -90,10 +91,10 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={toggle2FA}
-                  disabled={isLoading}
+                  disabled={isInitialLoading || isToggling}
                   className={`relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
                     is2FAEnabled ? 'bg-blue-600' : 'bg-gray-200'
-                  } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  } ${(isInitialLoading || isToggling) ? 'opacity-50 cursor-not-allowed' : ''}`}
                   role="switch"
                   aria-checked={is2FAEnabled}
                 >
@@ -114,13 +115,13 @@ export default function SettingsPage() {
                 : 'Enable two-factor authentication to add an extra layer of security to your account.'}
             </p>
             
-            {isLoading && (
+            {(isInitialLoading || isToggling) && (
               <div className="mt-4 flex items-center text-sm text-gray-500">
                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Processing...
+                {isInitialLoading ? 'Loading settings...' : 'Processing...'}
               </div>
             )}
           </div>
