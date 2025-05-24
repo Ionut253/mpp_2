@@ -5,30 +5,46 @@ import { User } from '@/types/prisma';
 
 export async function POST(request: Request) {
   try {
-    const user = getAuthUser();
+    const authUser = getAuthUser();
     
-    if (!user) {
+    if (!authUser) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
       );
     }
 
-    // Toggle 2FA status
+    // Get current user state from database
+    const currentUser = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      select: {
+        id: true,
+        twoFactorEnabled: true
+      }
+    });
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Toggle 2FA status using the current database state
     const updatedUser = await prisma.user.update({
-      where: { id: user.id },
+      where: { id: authUser.id },
       data: {
-        twoFactorEnabled: !user.twoFactorEnabled
+        twoFactorEnabled: !currentUser.twoFactorEnabled
       }
     }) as User;
 
     // Log the action
     await prisma.activityLog.create({
       data: {
-        userId: user.id,
+        userId: authUser.id,
         action: 'UPDATE',
         entity: 'User',
-        entityId: user.id,
+        entityId: authUser.id,
         details: `User ${updatedUser.twoFactorEnabled ? 'enabled' : 'disabled'} 2FA`
       }
     });
