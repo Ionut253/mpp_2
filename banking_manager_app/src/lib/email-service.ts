@@ -1,4 +1,4 @@
-import nodemailer, { Transporter } from 'nodemailer';
+import nodemailer from 'nodemailer';
 import sgMail from '@sendgrid/mail';
 
 // Initialize SendGrid if API key is available
@@ -6,17 +6,32 @@ if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
-// Create nodemailer transporter for development
-const devTransporter: Transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'sandbox.smtp.mailtrap.io',
-  port: parseInt(process.env.SMTP_PORT || '2525'),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-  debug: process.env.NODE_ENV !== 'production' // Enable debug logs in development
-});
+// Create test account for development
+let devTransporter: nodemailer.Transporter | null = null;
+
+async function createDevTransporter() {
+  if (process.env.NODE_ENV === 'development') {
+    // Generate test SMTP service account from ethereal.email
+    const testAccount = await nodemailer.createTestAccount();
+
+    // Create a transporter using the test account
+    devTransporter = nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
+
+    console.log('Development email credentials:', {
+      user: testAccount.user,
+      pass: testAccount.pass,
+      previewURL: 'https://ethereal.email'
+    });
+  }
+}
 
 export function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -43,25 +58,39 @@ export async function sendVerificationCode(
   `;
 
   try {
-    if (process.env.NODE_ENV === 'production' && process.env.SENDGRID_API_KEY) {
+    if (process.env.NODE_ENV === 'production') {
+      if (!process.env.SENDGRID_API_KEY) {
+        throw new Error('SendGrid API key is not configured');
+      }
+
       // Use SendGrid in production
       const msg = {
         to,
-        from: process.env.SMTP_FROM_EMAIL || 'noreply@yourdomain.com',
+        from: process.env.SENDGRID_FROM_EMAIL || 'noreply@yourdomain.com',
         subject,
         html,
       };
       await sgMail.send(msg);
+      console.log('Email sent successfully via SendGrid to:', to);
     } else {
-      // Use Mailtrap in development
-      await devTransporter.sendMail({
-        from: process.env.SMTP_FROM_EMAIL || 'noreply@yourdomain.com',
+      // Use Ethereal in development
+      if (!devTransporter) {
+        await createDevTransporter();
+      }
+
+      if (!devTransporter) {
+        throw new Error('Development email transporter not initialized');
+      }
+
+      const info = await devTransporter.sendMail({
+        from: '"Banking App" <test@example.com>',
         to,
         subject,
         html,
       });
+
+      console.log('Development email sent. Preview URL:', nodemailer.getTestMessageUrl(info));
     }
-    console.log('Email sent successfully to:', to);
     return true;
   } catch (error) {
     console.error('Error sending email:', error);
