@@ -11,25 +11,30 @@ let devTransporter: nodemailer.Transporter | null = null;
 
 async function createDevTransporter() {
   if (process.env.NODE_ENV === 'development') {
-    // Generate test SMTP service account from ethereal.email
-    const testAccount = await nodemailer.createTestAccount();
+    try {
+      // Generate test SMTP service account from ethereal.email
+      const testAccount = await nodemailer.createTestAccount();
 
-    // Create a transporter using the test account
-    devTransporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
+      // Create a transporter using the test account
+      devTransporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
+      });
+
+      console.log('Development email credentials:', {
         user: testAccount.user,
         pass: testAccount.pass,
-      },
-    });
-
-    console.log('Development email credentials:', {
-      user: testAccount.user,
-      pass: testAccount.pass,
-      previewURL: 'https://ethereal.email'
-    });
+        previewURL: 'https://ethereal.email'
+      });
+    } catch (error) {
+      console.error('Failed to create development email transporter:', error);
+      devTransporter = null;
+    }
   }
 }
 
@@ -96,15 +101,4 @@ export async function sendVerificationCode(
     console.error('Error sending email:', error);
     return false;
   }
-}
-
-// Test the email configuration on startup
-if (process.env.NODE_ENV !== 'production') {
-  devTransporter.verify((error: Error | null) => {
-    if (error) {
-      console.error('Email configuration error:', error);
-    } else {
-      console.log('Email server (Mailtrap) is ready to send messages');
-    }
-  });
 } 
