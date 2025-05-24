@@ -6,6 +6,9 @@ export interface AuthUser {
   email: string;
   role: 'USER' | 'ADMIN';
   customerId?: string;
+  twoFactorEnabled?: boolean;
+  verificationCode?: string | null;
+  verificationExpiry?: Date | null;
 }
 
 // Secret key for JWT verification - in production, use a proper secret from environment variables

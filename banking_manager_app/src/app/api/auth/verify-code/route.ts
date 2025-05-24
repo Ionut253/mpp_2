@@ -1,18 +1,15 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { SignJWT } from 'jose';
 import { cookies } from 'next/headers';
-import { generateVerificationCode, sendVerificationCode } from '@/lib/email-service';
 import { User } from '@/types/prisma';
 
-const loginSchema = z.object({
+const verifyCodeSchema = z.object({
   email: z.string().email(),
-  password: z.string()
+  code: z.string().length(6)
 });
 
-// Secret key for JWT signing - in production, use a proper secret from environment variables
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key'
 );
@@ -20,9 +17,9 @@ const JWT_SECRET = new TextEncoder().encode(
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password } = loginSchema.parse(body);
+    const { email, code } = verifyCodeSchema.parse(body);
 
-    // Find user
+    // Find user and check verification code
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
@@ -36,53 +33,39 @@ export async function POST(request: Request) {
       }
     }) as (User & { customer: { id: string; firstName: string; lastName: string; } | null });
 
-    if (!user) {
+    if (!user || !user.verificationCode || !user.verificationExpiry) {
       return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
+        { error: 'Invalid verification attempt' },
+        { status: 400 }
       );
     }
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
+    // Check if code has expired
+    if (new Date() > user.verificationExpiry) {
       return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
+        { error: 'Verification code has expired' },
+        { status: 400 }
       );
     }
 
-    // If 2FA is enabled, send verification code
-    if (user.twoFactorEnabled) {
-      const verificationCode = generateVerificationCode();
-      const verificationExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    // Verify code
+    if (user.verificationCode !== code) {
+      return NextResponse.json(
+        { error: 'Invalid verification code' },
+        { status: 400 }
+      );
+    }
 
-      // Save verification code and expiry
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          verificationCode,
-          verificationExpiry
-        }
-      });
-
-      // Send verification code via email
-      const emailSent = await sendVerificationCode(user.email, verificationCode);
-      if (!emailSent) {
-        return NextResponse.json(
-          { error: 'Failed to send verification code' },
-          { status: 500 }
-        );
+    // Clear verification code and expiry
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        verificationCode: null,
+        verificationExpiry: null
       }
+    });
 
-      return NextResponse.json({
-        success: true,
-        requiresVerification: true,
-        email: user.email
-      });
-    }
-
-    // If 2FA is not enabled, proceed with normal login
+    // Create JWT token
     const token = await new SignJWT({
       userId: user.id,
       email: user.email,
@@ -103,18 +86,17 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 // 24 hours
     });
 
-    // Log the login
+    // Log the successful verification
     await prisma.activityLog.create({
       data: {
         userId: user.id,
         action: 'READ',
         entity: 'User',
         entityId: user.id,
-        details: `User logged in with email ${email}`
+        details: `User verified 2FA code: ${email}`
       }
     });
 
-    // Return user data (excluding password)
     return NextResponse.json({
       success: true,
       data: {
@@ -125,7 +107,7 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Verification error:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid input', details: error.errors },

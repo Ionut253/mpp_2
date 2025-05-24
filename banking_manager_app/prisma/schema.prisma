@@ -15,6 +15,9 @@ model User {
   role            UserRole        @default(USER)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  twoFactorEnabled Boolean         @default(false)
+  verificationCode    String?
+  verificationExpiry DateTime?
   activityLogs    ActivityLog[]
   customer        Customer?
   monitoringAdded MonitoredUser[] @relation("MonitoringAddedBy")
