@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getAuthUser, isAdmin } from '@/lib/auth';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -11,25 +10,34 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const currentUser = getAuthUser();
-    if (!currentUser || !isAdmin()) {
-      router.push('/pages/login_page');
-      return;
-    }
-    setUser(currentUser);
-    
-    // Fetch dashboard data
-    fetch('/api/admin/dashboard')
+    // Check auth status
+    fetch('/api/auth/me')
       .then(response => response.json())
       .then(data => {
-        if (data.success) {
-          setDashboardData(data.data);
+        if (!data.success || data.data.role !== 'ADMIN') {
+          router.push('/pages/login_page');
+          return;
         }
+        setUser(data.data);
+        
+        // Fetch dashboard data
+        return fetch('/api/admin/dashboard')
+          .then(response => response.json())
+          .then(dashData => {
+            if (dashData.success) {
+              setDashboardData(dashData.data);
+            }
+          });
       })
       .catch(error => {
-        console.error('Error fetching dashboard data:', error);
+        console.error('Error checking auth status:', error);
+        router.push('/pages/login_page');
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, [router]);
 
@@ -52,6 +60,14 @@ export default function AdminDashboard() {
       setIsLoggingOut(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   if (!user) {
     return null;
