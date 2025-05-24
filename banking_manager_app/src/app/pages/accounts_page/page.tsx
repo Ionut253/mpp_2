@@ -39,7 +39,7 @@ export default function NewAccountPage() {
       }
 
       // Redirect back to the customer dashboard
-      router.push('/customer');
+      router.push('/pages/customer_dashboard');
     } catch (error) {
       console.error('Error creating account:', error);
       setError(error instanceof Error ? error.message : 'An error occurred while creating the account');
@@ -54,7 +54,7 @@ export default function NewAccountPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-800">Open New Account</h1>
           <Link 
-            href="/customer" 
+            href="/pages/customer_dashboard" 
             className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
           >
             Back to Dashboard
