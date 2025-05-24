@@ -4,16 +4,22 @@ import sgMail from '@sendgrid/mail';
 // Initialize SendGrid if API key is available
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log('SendGrid initialized with API key');
+} else {
+  console.warn('SendGrid API key not found');
 }
 
 // Create test account for development
 let devTransporter: nodemailer.Transporter | null = null;
 
 async function createDevTransporter() {
+  console.log('Creating development email transporter...');
   if (process.env.NODE_ENV === 'development') {
     try {
       // Generate test SMTP service account from ethereal.email
+      console.log('Generating Ethereal test account...');
       const testAccount = await nodemailer.createTestAccount();
+      console.log('Ethereal test account created:', testAccount.user);
 
       // Create a transporter using the test account
       devTransporter = nodemailer.createTransport({
@@ -39,13 +45,18 @@ async function createDevTransporter() {
 }
 
 export function generateVerificationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  console.log('Generated verification code:', code);
+  return code;
 }
 
 export async function sendVerificationCode(
   to: string,
   code: string
 ): Promise<boolean> {
+  console.log(`Attempting to send verification code to ${to}`);
+  console.log('Current environment:', process.env.NODE_ENV);
+
   const subject = 'Your Banking App Verification Code';
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -64,22 +75,33 @@ export async function sendVerificationCode(
 
   try {
     if (process.env.NODE_ENV === 'production') {
+      console.log('Using SendGrid for email delivery');
       if (!process.env.SENDGRID_API_KEY) {
         throw new Error('SendGrid API key is not configured');
       }
+      if (!process.env.SENDGRID_FROM_EMAIL) {
+        console.warn('SENDGRID_FROM_EMAIL not set, using default');
+      }
+
+      const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@yourdomain.com';
+      console.log('Sending from:', fromEmail);
 
       // Use SendGrid in production
       const msg = {
         to,
-        from: process.env.SENDGRID_FROM_EMAIL || 'noreply@yourdomain.com',
+        from: fromEmail,
         subject,
         html,
       };
+
+      console.log('Sending email via SendGrid...');
       await sgMail.send(msg);
       console.log('Email sent successfully via SendGrid to:', to);
     } else {
+      console.log('Using Ethereal for development email delivery');
       // Use Ethereal in development
       if (!devTransporter) {
+        console.log('No dev transporter found, creating one...');
         await createDevTransporter();
       }
 
@@ -87,6 +109,7 @@ export async function sendVerificationCode(
         throw new Error('Development email transporter not initialized');
       }
 
+      console.log('Sending development email...');
       const info = await devTransporter.sendMail({
         from: '"Banking App" <test@example.com>',
         to,
@@ -94,11 +117,21 @@ export async function sendVerificationCode(
         html,
       });
 
-      console.log('Development email sent. Preview URL:', nodemailer.getTestMessageUrl(info));
+      const previewUrl = nodemailer.getTestMessageUrl(info);
+      console.log('Development email sent successfully');
+      console.log('Preview URL:', previewUrl);
+      console.log('Message ID:', info.messageId);
     }
     return true;
   } catch (error) {
     console.error('Error sending email:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
     return false;
   }
 } 
