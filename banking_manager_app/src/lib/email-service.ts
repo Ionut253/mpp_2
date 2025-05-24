@@ -51,14 +51,21 @@ export function generateVerificationCode(): string {
 }
 
 async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, initialDelay = 2000): Promise<boolean> {
-  const isYahooDomain = msg.to.toString().toLowerCase().includes('yahoo.com');
+  // Safely handle msg.to which can be string | string[] | undefined
+  const recipientEmail = Array.isArray(msg.to) ? msg.to[0] : msg.to;
+  if (!recipientEmail) {
+    console.error('No recipient email provided');
+    return false;
+  }
+
+  const isYahooDomain = recipientEmail.toLowerCase().includes('yahoo.com');
   // Yahoo needs longer initial delay and more retries
   const retries = isYahooDomain ? 5 : maxRetries;
   let delay = isYahooDomain ? 5000 : initialDelay;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`SendGrid attempt ${attempt} of ${retries} for recipient: ${msg.to}`);
+      console.log(`SendGrid attempt ${attempt} of ${retries} for recipient: ${recipientEmail}`);
       await sgMail.send(msg);
       console.log('Email sent successfully via SendGrid');
       return true;
@@ -71,12 +78,12 @@ async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, initi
                          errorMessage.toLowerCase().includes('rate limit');
       
       if (isThrottled) {
-        console.log(`Throttling detected for ${msg.to}, waiting ${delay}ms before retry...`);
+        console.log(`Throttling detected for ${recipientEmail}, waiting ${delay}ms before retry...`);
         if (attempt < retries) {
           // Log detailed throttling information
           console.log({
             attempt,
-            recipient: msg.to,
+            recipient: recipientEmail,
             delay,
             errorDetails: error.response?.body || 'No detailed error body'
           });
@@ -90,7 +97,7 @@ async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, initi
       
       // If it's not a throttling error or we're out of retries
       console.error('Failed to send email after all retries:', {
-        recipient: msg.to,
+        recipient: recipientEmail,
         totalAttempts: attempt,
         finalError: errorMessage
       });
