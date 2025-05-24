@@ -51,8 +51,15 @@ export function generateVerificationCode(): string {
 }
 
 async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, initialDelay = 2000): Promise<boolean> {
-  // Safely handle msg.to which can be string | string[] | undefined
-  const recipientEmail = Array.isArray(msg.to) ? msg.to[0] : msg.to;
+  // Safely handle msg.to which can be string | string[] | EmailData | EmailData[] | undefined
+  const recipientEmail = Array.isArray(msg.to) 
+    ? typeof msg.to[0] === 'string' 
+      ? msg.to[0] 
+      : msg.to[0].email
+    : typeof msg.to === 'string'
+      ? msg.to
+      : msg.to?.email;
+
   if (!recipientEmail) {
     console.error('No recipient email provided');
     return false;
