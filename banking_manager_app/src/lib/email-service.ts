@@ -50,28 +50,50 @@ export function generateVerificationCode(): string {
   return code;
 }
 
-async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, delay = 2000): Promise<boolean> {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, initialDelay = 2000): Promise<boolean> {
+  const isYahooDomain = msg.to.toString().toLowerCase().includes('yahoo.com');
+  // Yahoo needs longer initial delay and more retries
+  const retries = isYahooDomain ? 5 : maxRetries;
+  let delay = isYahooDomain ? 5000 : initialDelay;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`SendGrid attempt ${attempt} of ${maxRetries}...`);
+      console.log(`SendGrid attempt ${attempt} of ${retries} for recipient: ${msg.to}`);
       await sgMail.send(msg);
       console.log('Email sent successfully via SendGrid');
       return true;
     } catch (error: any) {
-      console.error(`SendGrid attempt ${attempt} failed:`, error.message);
+      const errorMessage = error.response?.body?.errors?.[0]?.message || error.message;
+      console.error(`SendGrid attempt ${attempt} failed:`, errorMessage);
       
-      // Check if it's a throttling error
-      if (error.response?.body?.errors?.[0]?.message?.includes('throttled')) {
-        console.log(`Throttling detected, waiting ${delay}ms before retry...`);
-        if (attempt < maxRetries) {
+      const isThrottled = errorMessage.toLowerCase().includes('throttle') || 
+                         errorMessage.toLowerCase().includes('deferred') ||
+                         errorMessage.toLowerCase().includes('rate limit');
+      
+      if (isThrottled) {
+        console.log(`Throttling detected for ${msg.to}, waiting ${delay}ms before retry...`);
+        if (attempt < retries) {
+          // Log detailed throttling information
+          console.log({
+            attempt,
+            recipient: msg.to,
+            delay,
+            errorDetails: error.response?.body || 'No detailed error body'
+          });
+          
           await new Promise(resolve => setTimeout(resolve, delay));
-          // Increase delay for next attempt
-          delay *= 2;
+          // Exponential backoff with additional random jitter
+          delay = Math.min(delay * 2 * (1 + Math.random() * 0.1), 30000); // Cap at 30 seconds
           continue;
         }
       }
       
-      // If it's not a throttling error or we're out of retries, give up
+      // If it's not a throttling error or we're out of retries
+      console.error('Failed to send email after all retries:', {
+        recipient: msg.to,
+        totalAttempts: attempt,
+        finalError: errorMessage
+      });
       return false;
     }
   }
