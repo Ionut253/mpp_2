@@ -14,7 +14,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get current user state from database
     const currentUser = await prisma.user.findUnique({
       where: { id: authUser.id },
       select: {
@@ -30,15 +29,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Toggle 2FA status using the current database state
     const updatedUser = await prisma.user.update({
       where: { id: authUser.id },
       data: {
-        twoFactorEnabled: !currentUser.twoFactorEnabled
+        twoFactorEnabled: currentUser.twoFactorEnabled
       }
     }) as User;
 
-    // Log the action
     await prisma.activityLog.create({
       data: {
         userId: authUser.id,

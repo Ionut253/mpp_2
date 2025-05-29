@@ -39,7 +39,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if code has expired
     if (new Date() > user.verificationExpiry) {
       return NextResponse.json(
         { error: 'Verification code has expired' },
@@ -47,7 +46,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify code
     if (user.verificationCode !== code) {
       return NextResponse.json(
         { error: 'Invalid verification code' },
@@ -55,7 +53,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Clear verification code and expiry
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -64,7 +61,6 @@ export async function POST(request: Request) {
       }
     });
 
-    // Create JWT token
     const token = await new SignJWT({
       userId: user.id,
       email: user.email,
@@ -76,16 +72,14 @@ export async function POST(request: Request) {
       .setExpirationTime('24h')
       .sign(JWT_SECRET);
 
-    // Set cookie
     const cookieStore = cookies();
     cookieStore.set('auth-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 // 24 hours
+      maxAge: 60 * 60 * 24 
     });
 
-    // Log the successful verification
     await prisma.activityLog.create({
       data: {
         userId: user.id,
