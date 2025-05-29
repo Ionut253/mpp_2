@@ -11,7 +11,6 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch current 2FA status
     fetch('/api/auth/get-2fa-status')
       .then(res => res.json())
       .then(data => {

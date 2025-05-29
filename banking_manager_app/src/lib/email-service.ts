@@ -51,7 +51,6 @@ export function generateVerificationCode(): string {
 }
 
 async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, initialDelay = 2000): Promise<boolean> {
-  // Safely handle msg.to which can be string | string[] | EmailData | EmailData[] | undefined
   const recipientEmail = Array.isArray(msg.to) 
     ? typeof msg.to[0] === 'string' 
       ? msg.to[0] 
@@ -66,7 +65,6 @@ async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, initi
   }
 
   const isYahooDomain = recipientEmail.toLowerCase().includes('yahoo.com');
-  // Yahoo needs longer initial delay and more retries
   const retries = isYahooDomain ? 5 : maxRetries;
   let delay = isYahooDomain ? 5000 : initialDelay;
 
@@ -87,7 +85,6 @@ async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, initi
       if (isThrottled) {
         console.log(`Throttling detected for ${recipientEmail}, waiting ${delay}ms before retry...`);
         if (attempt < retries) {
-          // Log detailed throttling information
           console.log({
             attempt,
             recipient: recipientEmail,
@@ -96,13 +93,11 @@ async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, initi
           });
           
           await new Promise(resolve => setTimeout(resolve, delay));
-          // Exponential backoff with additional random jitter
-          delay = Math.min(delay * 2 * (1 + Math.random() * 0.1), 30000); // Cap at 30 seconds
+          delay = Math.min(delay * 2 * (1 + Math.random() * 0.1), 30000); 
           continue;
         }
       }
       
-      // If it's not a throttling error or we're out of retries
       console.error('Failed to send email after all retries:', {
         recipient: recipientEmail,
         totalAttempts: attempt,
@@ -150,7 +145,6 @@ export async function sendVerificationCode(
       const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@yourdomain.com';
       console.log('Sending from:', fromEmail);
 
-      // Use SendGrid in production with retry mechanism
       const msg = {
         to,
         from: fromEmail,
@@ -161,7 +155,6 @@ export async function sendVerificationCode(
       return await sendWithRetry(msg);
     } else {
       console.log('Using Ethereal for development email delivery');
-      // Use Ethereal in development
       if (!devTransporter) {
         console.log('No dev transporter found, creating one...');
         await createDevTransporter();
