@@ -133,7 +133,14 @@ export default function UsersPage() {
             Manage system users and their permissions
           </p>
         </div>
-        <div>
+        <div className="flex space-x-4">
+          <button
+            type="button"
+            onClick={() => router.push('/pages/admin')}
+            className="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-200"
+          >
+            Back to Dashboard
+          </button>
           <button
             type="button"
             onClick={() => setShowAddUserModal(true)}
@@ -187,9 +194,6 @@ export default function UsersPage() {
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Created
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -212,14 +216,6 @@ export default function UsersPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {new Date(user.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button
-                    onClick={() => handleViewUser(user.id)}
-                    className="text-indigo-600 hover:text-indigo-900"
-                  >
-                    View
-                  </button>
                 </td>
               </tr>
             ))}
