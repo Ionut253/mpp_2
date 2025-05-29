@@ -61,10 +61,6 @@ export default function UsersPage() {
     }
   };
 
-  const handleViewUser = (userId: string) => {
-    router.push(`/pages/admin/users/${userId}`);
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setNewUserData(prev => ({ ...prev, [name]: value }));
