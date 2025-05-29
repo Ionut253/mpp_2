@@ -18,7 +18,7 @@ export default function AdminDashboard() {
       .then(response => response.json())
       .then(data => {
         if (!data.success || data.data.role !== 'ADMIN') {
-          router.push('/pages/login_page');
+          router.push('/login_page');
           return;
         }
         setUser(data.data);
@@ -34,7 +34,7 @@ export default function AdminDashboard() {
       })
       .catch(error => {
         console.error('Error checking auth status:', error);
-        router.push('/pages/login_page');
+        router.push('/login_page');
       })
       .finally(() => {
         setIsLoading(false);
@@ -52,7 +52,7 @@ export default function AdminDashboard() {
         throw new Error('Failed to logout');
       }
 
-      router.push('/pages/login_page');
+      router.push('/login_page');
     } catch (error) {
       console.error('Logout error:', error);
       setError('Failed to logout. Please try again.');

@@ -17,6 +17,31 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export function getAuthUser(): AuthUser | null {
   try {
+    const cookieStore = cookies();
+    const token = cookieStore.get('auth-token')?.value;
+    
+    if (token) {
+      try {
+        const tokenParts = token.split('.');
+        if (tokenParts.length !== 3) {
+          return null;
+        }
+        
+        const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+        
+        return {
+          id: payload.userId as string,
+          email: payload.email as string,
+          role: payload.role as 'USER' | 'ADMIN',
+          customerId: payload.customerId as string | undefined
+        };
+      } catch (tokenError) {
+        console.error('Error parsing token:', tokenError);
+        return null;
+      }
+    }
+
+    // Fallback to headers if no valid token in cookies
     const headersList = headers();
     const userId = headersList.get('x-user-id');
     const userRole = headersList.get('x-user-role');
@@ -32,31 +57,7 @@ export function getAuthUser(): AuthUser | null {
       };
     }
     
-    const cookieStore = cookies();
-    const token = cookieStore.get('auth-token')?.value;
-    
-    if (!token) {
-      return null;
-    }
-    
-    try {
-      const tokenParts = token.split('.');
-      if (tokenParts.length !== 3) {
-        return null;
-      }
-      
-      const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
-      
-      return {
-        id: payload.userId as string,
-        email: payload.email as string,
-        role: payload.role as 'USER' | 'ADMIN',
-        customerId: payload.customerId as string | undefined
-      };
-    } catch (tokenError) {
-      console.error('Error parsing token:', tokenError);
-      return null;
-    }
+    return null;
   } catch (error) {
     console.error('Error getting auth user:', error);
     return null;

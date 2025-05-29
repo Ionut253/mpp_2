@@ -12,8 +12,8 @@ const JWT_SECRET = new TextEncoder().encode(
 const PUBLIC_PATHS = [
   '/api/auth/login',
   '/api/auth/register',
-  '/login',
-  '/register',
+  '/login_page',
+  '/register_page',
   '/'
 ];
 
@@ -102,7 +102,7 @@ export async function middleware(request: NextRequest) {
       ), origin);
     }
     // Otherwise redirect to login
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(new URL('/login_page', request.url));
   }
 
   try {
@@ -120,24 +120,24 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check admin routes
-    if ((path.startsWith('/api/admin/') || path.startsWith('/admin')) && payload.role !== 'ADMIN') {
+    if ((path.startsWith('/api/admin/') || path.startsWith('/pages/admin')) && payload.role !== 'ADMIN') {
       if (path.startsWith('/api/')) {
         return addCorsHeaders(NextResponse.json(
           { error: 'Unauthorized' },
           { status: 403 }
         ), origin);
       }
-      return NextResponse.redirect(new URL('/customer', request.url));
+      return NextResponse.redirect(new URL('/customer_dashboard', request.url));
     }
 
     // Check customer routes for regular users
-    if (path.startsWith('/customer') && !payload.customerId && payload.role !== 'ADMIN') {
+    if (path.startsWith('/pages/customer_dashboard') && !payload.customerId && payload.role !== 'ADMIN') {
       return NextResponse.redirect(new URL('/', request.url));
     }
     
     // Redirect admins trying to access customer routes to admin dashboard
-    if (path.startsWith('/customer') && payload.role === 'ADMIN' && !payload.customerId) {
-      return NextResponse.redirect(new URL('/admin', request.url));
+    if (path.startsWith('/pages/customer_dashboard') && payload.role === 'ADMIN' && !payload.customerId) {
+      return NextResponse.redirect(new URL('/pages/admin', request.url));
     }
 
     // Add security headers
@@ -164,7 +164,7 @@ export async function middleware(request: NextRequest) {
     // If token is invalid, clear it and redirect to login
     const response = path.startsWith('/api/')
       ? addCorsHeaders(NextResponse.json({ error: 'Invalid token' }, { status: 401 }), origin)
-      : NextResponse.redirect(new URL('/login', request.url));
+      : NextResponse.redirect(new URL('/login_page', request.url));
 
     response.cookies.delete('auth-token');
     return response;
