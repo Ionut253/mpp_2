@@ -41,7 +41,6 @@ export function getAuthUser(): AuthUser | null {
       }
     }
 
-    // Fallback to headers if no valid token in cookies
     const headersList = headers();
     const userId = headersList.get('x-user-id');
     const userRole = headersList.get('x-user-role');

@@ -12,7 +12,6 @@ const loginSchema = z.object({
   password: z.string()
 });
 
-// Secret key for JWT signing - in production, use a proper secret from environment variables
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key'
 );
@@ -22,7 +21,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { email, password } = loginSchema.parse(body);
 
-    // Find user
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
@@ -43,7 +41,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return NextResponse.json(
@@ -51,13 +48,10 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
-
-    // If 2FA is enabled, send verification code
     if (user.twoFactorEnabled) {
       const verificationCode = generateVerificationCode();
       const verificationExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      // Save verification code and expiry
       await prisma.user.update({
         where: { id: user.id },
         data: {
@@ -66,7 +60,6 @@ export async function POST(request: Request) {
         }
       });
 
-      // Send verification code via email
       const emailSent = await sendVerificationCode(user.email, verificationCode);
       if (!emailSent) {
         return NextResponse.json(
@@ -82,7 +75,6 @@ export async function POST(request: Request) {
       });
     }
 
-    // If 2FA is not enabled, proceed with normal login
     const token = await new SignJWT({
       userId: user.id,
       email: user.email,
@@ -94,16 +86,14 @@ export async function POST(request: Request) {
       .setExpirationTime('24h')
       .sign(JWT_SECRET);
 
-    // Set cookie
     const cookieStore = cookies();
     cookieStore.set('auth-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 // 24 hours
+      maxAge: 60 * 60 * 24 
     });
 
-    // Log the login
     await prisma.activityLog.create({
       data: {
         userId: user.id,
@@ -114,7 +104,6 @@ export async function POST(request: Request) {
       }
     });
 
-    // Return user data (excluding password)
     return NextResponse.json({
       success: true,
       data: {

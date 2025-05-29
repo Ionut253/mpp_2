@@ -1,47 +1,10 @@
-import nodemailer from 'nodemailer';
 import sgMail from '@sendgrid/mail';
 
-// Initialize SendGrid if API key is available
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   console.log('SendGrid initialized with API key');
 } else {
-  console.warn('SendGrid API key not found');
-}
-
-// Create test account for development
-let devTransporter: nodemailer.Transporter | null = null;
-
-async function createDevTransporter() {
-  console.log('Creating development email transporter...');
-  if (process.env.NODE_ENV === 'development') {
-    try {
-      // Generate test SMTP service account from ethereal.email
-      console.log('Generating Ethereal test account...');
-      const testAccount = await nodemailer.createTestAccount();
-      console.log('Ethereal test account created:', testAccount.user);
-
-      // Create a transporter using the test account
-      devTransporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-      });
-
-      console.log('Development email credentials:', {
-        user: testAccount.user,
-        pass: testAccount.pass,
-        previewURL: 'https://ethereal.email'
-      });
-    } catch (error) {
-      console.error('Failed to create development email transporter:', error);
-      devTransporter = null;
-    }
-  }
+  console.error('SendGrid API key not found - email functionality will not work');
 }
 
 export function generateVerificationCode(): string {
@@ -66,7 +29,7 @@ async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, initi
 
   const isYahooDomain = recipientEmail.toLowerCase().includes('yahoo.com');
   const retries = isYahooDomain ? 5 : maxRetries;
-  let delay = isYahooDomain ? 5000 : initialDelay;
+  let delay = isYahooDomain ? 5000 : initialDelay; 
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -82,28 +45,28 @@ async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, initi
                          errorMessage.toLowerCase().includes('deferred') ||
                          errorMessage.toLowerCase().includes('rate limit');
       
-      if (isThrottled) {
+      if (isThrottled && attempt < retries) {
         console.log(`Throttling detected for ${recipientEmail}, waiting ${delay}ms before retry...`);
-        if (attempt < retries) {
-          console.log({
-            attempt,
-            recipient: recipientEmail,
-            delay,
-            errorDetails: error.response?.body || 'No detailed error body'
-          });
-          
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay = Math.min(delay * 2 * (1 + Math.random() * 0.1), 30000); 
-          continue;
-        }
+        console.log({
+          attempt,
+          recipient: recipientEmail,
+          delay,
+          errorDetails: error.response?.body || 'No detailed error body'
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay = Math.min(delay * 2 * (1 + Math.random() * 0.1), 30000); 
+        continue;
       }
       
-      console.error('Failed to send email after all retries:', {
-        recipient: recipientEmail,
-        totalAttempts: attempt,
-        finalError: errorMessage
-      });
-      return false;
+      if (attempt === retries) {
+        console.error('Failed to send email after all retries:', {
+          recipient: recipientEmail,
+          totalAttempts: attempt,
+          finalError: errorMessage
+        });
+        return false;
+      }
     }
   }
   return false;
@@ -115,6 +78,11 @@ export async function sendVerificationCode(
 ): Promise<boolean> {
   console.log(`Attempting to send verification code to ${to}`);
   console.log('Current environment:', process.env.NODE_ENV);
+
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error('SendGrid API key is not configured');
+    return false;
+  }
 
   const subject = 'Your Banking App Verification Code';
   const html = `
@@ -133,51 +101,22 @@ export async function sendVerificationCode(
   `;
 
   try {
-    if (process.env.NODE_ENV === 'production') {
-      console.log('Using SendGrid for email delivery');
-      if (!process.env.SENDGRID_API_KEY) {
-        throw new Error('SendGrid API key is not configured');
-      }
-      if (!process.env.SENDGRID_FROM_EMAIL) {
-        console.warn('SENDGRID_FROM_EMAIL not set, using default');
-      }
-
-      const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@yourdomain.com';
-      console.log('Sending from:', fromEmail);
-
-      const msg = {
-        to,
-        from: fromEmail,
-        subject,
-        html,
-      };
-
-      return await sendWithRetry(msg);
-    } else {
-      console.log('Using Ethereal for development email delivery');
-      if (!devTransporter) {
-        console.log('No dev transporter found, creating one...');
-        await createDevTransporter();
-      }
-
-      if (!devTransporter) {
-        throw new Error('Development email transporter not initialized');
-      }
-
-      console.log('Sending development email...');
-      const info = await devTransporter.sendMail({
-        from: '"Banking App" <test@example.com>',
-        to,
-        subject,
-        html,
-      });
-
-      const previewUrl = nodemailer.getTestMessageUrl(info);
-      console.log('Development email sent successfully');
-      console.log('Preview URL:', previewUrl);
-      console.log('Message ID:', info.messageId);
-      return true;
+    console.log('Using SendGrid for email delivery');
+    
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@yourdomain.com';
+    if (!process.env.SENDGRID_FROM_EMAIL) {
+      console.warn('SENDGRID_FROM_EMAIL not set, using default:', fromEmail);
     }
+    console.log('Sending from:', fromEmail);
+
+    const msg = {
+      to,
+      from: fromEmail,
+      subject,
+      html,
+    };
+
+    return await sendWithRetry(msg);
   } catch (error) {
     console.error('Error sending email:', error);
     if (error instanceof Error) {
@@ -189,4 +128,19 @@ export async function sendVerificationCode(
     }
     return false;
   }
-} 
+}
+
+export async function testSendGridConfiguration(): Promise<boolean> {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error('SendGrid API key not configured');
+    return false;
+  }
+
+  if (!process.env.SENDGRID_FROM_EMAIL) {
+    console.error('SendGrid from email not configured');
+    return false;
+  }
+
+  console.log('SendGrid configuration appears valid');
+  return true;
+}

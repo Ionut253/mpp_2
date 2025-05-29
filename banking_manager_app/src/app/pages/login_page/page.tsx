@@ -42,7 +42,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Navigate to appropriate dashboard based on user role
       if (data.data.role === 'ADMIN') {
         router.push('/pages/admin');
       } else {
@@ -80,7 +79,6 @@ export default function LoginPage() {
         throw new Error(data.error || 'Failed to verify code');
       }
 
-      // Navigate to appropriate dashboard based on user role
       if (data.data.role === 'ADMIN') {
         router.push('/pages/admin');
       } else {
