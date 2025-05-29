@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const updatedUser = await prisma.user.update({
       where: { id: authUser.id },
       data: {
-        twoFactorEnabled: currentUser.twoFactorEnabled
+        twoFactorEnabled: !currentUser.twoFactorEnabled
       }
     }) as User;
 
