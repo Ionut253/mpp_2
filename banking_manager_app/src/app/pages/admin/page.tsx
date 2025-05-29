@@ -48,6 +48,7 @@ export default function AdminDashboard() {
       .then(response => response.json())
       .then(data => {
         if (!data.success || data.data.role !== 'ADMIN') {
+          router.push('/pages/login_page');
           return;
         }
         setUser(data.data);
