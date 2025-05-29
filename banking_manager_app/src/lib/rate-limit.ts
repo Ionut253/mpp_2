@@ -80,8 +80,8 @@ export function createRateLimit(options: RateLimitOptions = {}) {
 
 // Create common rate limiters
 export const authRateLimit = createRateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5 // 5 requests per 15 minutes
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10 // 10 requests per 5 minutes
 });
 
 export const apiRateLimit = createRateLimit({
