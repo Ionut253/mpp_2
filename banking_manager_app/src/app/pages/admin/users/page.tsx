@@ -62,7 +62,7 @@ export default function UsersPage() {
   };
 
   const handleViewUser = (userId: string) => {
-    router.push(`/admin/users/${userId}`);
+    router.push(`/pages/admin/users/${userId}`);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
