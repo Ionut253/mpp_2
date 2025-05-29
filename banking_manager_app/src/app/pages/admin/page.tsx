@@ -42,66 +42,26 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/me');
-        const data = await response.json();
-
-        if (!isMounted) return;
-
-        if (!data.success) {
-          setError('Authentication failed');
-          setIsAuthorized(false);
+    // Check auth status
+    fetch('/api/auth/me')
+      .then(response => response.json())
+      .then(data => {
+        if (!data.success || data.data.role !== 'ADMIN') {
+          router.push('/login_page');
           return;
         }
-
-        if (data.data.role !== 'ADMIN') {
-          setError('You must be an admin to view this page');
-          setIsAuthorized(false);
-          return;
-        }
-
         setUser(data.data);
-        setIsAuthorized(true);
-        
-        // Only fetch dashboard data if user is authorized
-        try {
-          const dashResponse = await fetch('/api/admin/dashboard');
-          const dashData = await dashResponse.json();
-          
-          if (!isMounted) return;
-
-          if (dashData.success) {
-            setDashboardData(dashData.data);
-          }
-        } catch (dashError) {
-          console.error('Error fetching dashboard data:', dashError);
-          setError('Failed to load dashboard data');
-        }
-      } catch (error) {
+      })
+      .catch(error => {
         console.error('Error checking auth status:', error);
-        if (isMounted) {
-          setError('Failed to verify authentication');
-          setIsAuthorized(false);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    checkAuth();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+        router.push('/login_page');
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [router]);
 
   const handleLogout = async () => {
     try {
@@ -131,25 +91,6 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!isAuthorized) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h2>
-          <p className="text-gray-600 mb-6">{error || 'You do not have permission to view this page.'}</p>
-          <div className="flex justify-center">
-            <Link
-              href="/login_page"
-              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded"
-            >
-              Go to Login
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (!user) {
     return null;
   }
@@ -161,10 +102,16 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
           <div className="space-x-4">
             <Link 
-              href="/" 
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+              href="/pages/admin/users" 
+              className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded"
             >
-              Main Dashboard
+              Manage Users
+            </Link>
+            <Link 
+              href="/pages/admin/monitoring" 
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+            >
+              Monitoring
             </Link>
             <button 
               onClick={handleLogout}
@@ -183,93 +130,29 @@ export default function AdminDashboard() {
         <p className="text-gray-600">Logged in as: {user.email} (Admin)</p>
       </header>
 
-      {dashboardData && (
-        <div className="space-y-8">
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Customers</h3>
-              <p className="text-3xl font-bold text-blue-600">{dashboardData.summary.totalCustomers}</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Accounts</h3>
-              <p className="text-3xl font-bold text-green-600">{dashboardData.summary.totalAccounts}</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Transactions</h3>
-              <p className="text-3xl font-bold text-purple-600">{dashboardData.summary.totalTransactions}</p>
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Recent Transactions */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Recent Transactions</h3>
-              <div className="space-y-4">
-                {dashboardData.recentTransactions.map(tx => (
-                  <div key={tx.id} className="border-b pb-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-gray-800">{tx.customer}</p>
-                        <p className="text-sm text-gray-600">{tx.accountType}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-bold ${tx.type === 'DEPOSIT' ? 'text-green-600' : 'text-red-600'}`}>
-                          {tx.type === 'DEPOSIT' ? '+' : '-'}${tx.amount}
-                        </p>
-                        <p className="text-sm text-gray-500">{new Date(tx.date).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Recent Customers */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Recent Customers</h3>
-              <div className="space-y-4">
-                {dashboardData.recentCustomers.map(customer => (
-                  <div key={customer.id} className="border-b pb-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-gray-800">{customer.name}</p>
-                        <p className="text-sm text-gray-600">{customer.email}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-blue-600">{customer.accountCount} accounts</p>
-                        <p className="text-sm text-gray-500">{new Date(customer.date).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Activity Log */}
-            <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Recent Activity</h3>
-              <div className="space-y-4">
-                {dashboardData.recentActivity.map(activity => (
-                  <div key={activity.id} className="border-b pb-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-gray-800">{activity.action} {activity.entity}</p>
-                        <p className="text-sm text-gray-600">{activity.details}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">{activity.user}</p>
-                        <p className="text-sm text-gray-500">{new Date(activity.date).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">User Management</h2>
+          <p className="text-gray-600 mb-4">Manage system users, roles, and permissions.</p>
+          <Link 
+            href="/pages/admin/users"
+            className="inline-block bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded"
+          >
+            Go to Users
+          </Link>
         </div>
-      )}
+
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">System Monitoring</h2>
+          <p className="text-gray-600 mb-4">Monitor system performance and activity.</p>
+          <Link 
+            href="/pages/admin/monitoring"
+            className="inline-block bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+          >
+            View Monitoring
+          </Link>
+        </div>
+      </div>
     </div>
   );
 } 
