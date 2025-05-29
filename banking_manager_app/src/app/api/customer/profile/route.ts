@@ -14,7 +14,6 @@ export async function GET() {
       );
     }
 
-    // Find the user from database
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
       include: { customer: true }
@@ -29,7 +28,6 @@ export async function GET() {
 
     const customer = dbUser.customer;
 
-    // Log this activity
     await logActivity({
       userId: user.id,
       action: 'READ',
@@ -38,7 +36,6 @@ export async function GET() {
       details: 'Customer profile viewed'
     });
 
-    // Return the customer data
     return NextResponse.json({
       success: true,
       data: {
@@ -73,7 +70,6 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Find the user from database
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
       include: { customer: true }
@@ -86,15 +82,11 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Parse request body
     const data = await request.json();
     const { firstName, lastName, email, phone, address, dob } = data;
     
-    // Update customer in a transaction
     const result = await prisma.$transaction(async (tx : any) => {
-      // Update email in User model if it has changed
       if (email && email !== dbUser.email) {
-        // Check if email is already taken by another user
         const existingUser = await tx.user.findUnique({
           where: { email }
         });
@@ -109,7 +101,6 @@ export async function PUT(request: Request) {
         });
       }
       
-      // Update customer profile
       const updatedCustomer = await tx.customer.update({
         where: { id: dbUser.customer!.id },
         data: {
@@ -122,7 +113,6 @@ export async function PUT(request: Request) {
         }
       });
       
-      // Log activity
       await tx.activityLog.create({
         data: {
           userId: user.id,
@@ -136,7 +126,6 @@ export async function PUT(request: Request) {
       return updatedCustomer;
     });
 
-    // Return the updated customer data
     return NextResponse.json({
       success: true,
       data: {
@@ -154,7 +143,6 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error('Error updating customer profile:', error);
     
-    // More descriptive error messages
     if (error instanceof Error) {
       if (error.message.includes('already in use')) {
         return NextResponse.json(

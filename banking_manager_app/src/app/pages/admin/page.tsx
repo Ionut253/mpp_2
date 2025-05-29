@@ -44,12 +44,10 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check auth status
     fetch('/api/auth/me')
       .then(response => response.json())
       .then(data => {
         if (!data.success || data.data.role !== 'ADMIN') {
-          router.push('/pages/login_page');
           return;
         }
         setUser(data.data);

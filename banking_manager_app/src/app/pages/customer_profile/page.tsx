@@ -30,7 +30,6 @@ export default function EditProfilePage() {
   const [isFetchingProfile, setIsFetchingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch profile on component mount
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -48,7 +47,6 @@ export default function EditProfilePage() {
       const customer = data.data.customer;
       setProfile(customer);
 
-      // Format date for input field (YYYY-MM-DD)
       let formattedDob = '';
       if (customer.dob) {
         const date = new Date(customer.dob);
@@ -96,7 +94,6 @@ export default function EditProfilePage() {
         throw new Error(data.error || 'Failed to update profile');
       }
 
-      // Redirect back to the customer dashboard
       router.push('/pages/customer_dashboard');
     } catch (error) {
       console.error('Error updating profile:', error);

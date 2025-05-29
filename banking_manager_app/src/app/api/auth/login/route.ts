@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     }
     if (user.twoFactorEnabled) {
       const verificationCode = generateVerificationCode();
-      const verificationExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      const verificationExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
       await prisma.user.update({
         where: { id: user.id },

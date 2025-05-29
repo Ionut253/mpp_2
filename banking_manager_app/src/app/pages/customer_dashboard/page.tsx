@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Account, Customer, Transaction } from '@/generated/client/default';
 
-// Extended type to include the account relationship
 interface TransactionWithAccount extends Transaction {
   account?: {
     accountType: string;
@@ -22,7 +21,6 @@ export default function CustomerDashboard() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    // Fetch customer data when component mounts
     fetchCustomerData();
   }, []);
 
@@ -31,11 +29,9 @@ export default function CustomerDashboard() {
       setIsLoading(true);
       setError(null);
       
-      // Get current customer profile
       const profileResponse = await fetch('/api/customer/profile');
       
       if (!profileResponse.ok) {
-        // If unauthorized, redirect to login
         if (profileResponse.status === 401) {
           router.push('/pages/login_page');
           return;
@@ -51,14 +47,12 @@ export default function CustomerDashboard() {
       
       setCustomer(profileData.data.customer);
       
-      // Get customer accounts
       const accountsResponse = await fetch('/api/customer/accounts');
       const accountsData = await accountsResponse.json();
       
       if (accountsResponse.ok && accountsData.success) {
         setAccounts(accountsData.data.accounts);
         
-        // Get recent transactions
         const transactionsResponse = await fetch('/api/customer/transactions?limit=10');
         const transactionsData = await transactionsResponse.json();
         
@@ -87,7 +81,6 @@ export default function CustomerDashboard() {
   };
 
   const handleViewAccountDetails = (accountId: string) => {
-    // For now, we'll just show the transactions for this account
     router.push(`/pages/transactions_page?accountId=${accountId}`);
   };
 

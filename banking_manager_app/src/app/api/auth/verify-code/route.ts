@@ -19,7 +19,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { email, code } = verifyCodeSchema.parse(body);
 
-    // Find user and check verification code
     const user = await prisma.user.findUnique({
       where: { email },
       include: {

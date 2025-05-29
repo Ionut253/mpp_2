@@ -33,9 +33,7 @@ async function sendWithRetry(msg: sgMail.MailDataRequired, maxRetries = 3, initi
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`SendGrid attempt ${attempt} of ${retries} for recipient: ${recipientEmail}`);
       await sgMail.send(msg);
-      console.log('Email sent successfully via SendGrid');
       return true;
     } catch (error: any) {
       const errorMessage = error.response?.body?.errors?.[0]?.message || error.message;
@@ -128,19 +126,4 @@ export async function sendVerificationCode(
     }
     return false;
   }
-}
-
-export async function testSendGridConfiguration(): Promise<boolean> {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.error('SendGrid API key not configured');
-    return false;
-  }
-
-  if (!process.env.SENDGRID_FROM_EMAIL) {
-    console.error('SendGrid from email not configured');
-    return false;
-  }
-
-  console.log('SendGrid configuration appears valid');
-  return true;
 }
