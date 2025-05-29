@@ -4,11 +4,38 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 
+type ActionType = 'CREATE' | 'UPDATE' | 'DELETE' | 'READ';
+
+interface Transaction {
+  id: string;
+  amount: number;
+  type: 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER';
+  status: 'COMPLETED' | 'PENDING' | 'FAILED';
+  description?: string | null;
+  accountId: string;
+  createdAt: Date;
+  account?: {
+    id: string;
+    balance: number;
+  };
+}
+
+interface ActivityLog {
+  id: string;
+  userId: string;
+  action: ActionType;
+  entity: string;
+  entityId: string;
+  details: string | null;
+  timestamp: Date;
+}
+
 interface User {
   id: string;
   email: string;
   role: string;
   createdAt: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
   customer?: {
     id: string;
     firstName: string;
@@ -16,13 +43,8 @@ interface User {
     email: string;
     phone?: string;
   } | null;
-  activityLogs?: Array<{
-    id: string;
-    action: string;
-    entity: string;
-    details: string;
-    timestamp: string;
-  }>;
+  transactions?: Transaction[];
+  activityLogs?: ActivityLog[];
 }
 
 export default function UsersPage() {
@@ -34,12 +56,22 @@ export default function UsersPage() {
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'profile' | 'transactions' | 'logs'>('profile');
+  const [isEditing, setIsEditing] = useState(false);
   const [newUserData, setNewUserData] = useState({
     email: '',
     password: '',
     firstName: '',
     lastName: '',
     role: 'USER',
+    phone: ''
+  });
+  const [editData, setEditData] = useState({
+    email: '',
+    role: '',
+    status: '',
+    firstName: '',
+    lastName: '',
     phone: ''
   });
 
@@ -130,6 +162,50 @@ export default function UsersPage() {
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to delete user');
     }
+  };
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+
+    try {
+      setError(null);
+      const response = await fetch(`/api/admin/users/${selectedUser.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update user');
+      }
+
+      // Refresh user data
+      const updatedUserResponse = await fetch(`/api/admin/users/${selectedUser.id}`);
+      const updatedUserData = await updatedUserResponse.json();
+      setSelectedUser(updatedUserData.data);
+      
+      setIsEditing(false);
+      await fetchUsers(); // Refresh the users list
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to update user');
+    }
+  };
+
+  const startEditing = (user: User) => {
+    setEditData({
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      firstName: user.customer?.firstName || '',
+      lastName: user.customer?.lastName || '',
+      phone: user.customer?.phone || ''
+    });
+    setIsEditing(true);
   };
 
   const filteredUsers = searchTerm
@@ -415,7 +491,7 @@ export default function UsersPage() {
             <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
               <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
               <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-              <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
                 <div className="absolute top-0 right-0 pt-4 pr-4">
                   <button
                     type="button"
@@ -428,67 +504,357 @@ export default function UsersPage() {
                     </svg>
                   </button>
                 </div>
-                <div className="sm:flex sm:items-start">
-                  <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900">User Details</h3>
-                    <div className="mt-4 border-t border-gray-200">
-                      <dl className="divide-y divide-gray-200">
-                        <div className="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                          <dt className="text-sm font-medium text-gray-500">Full name</dt>
-                          <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                            {selectedUser.customer 
-                              ? `${selectedUser.customer.firstName} ${selectedUser.customer.lastName}`
-                              : 'N/A'}
-                          </dd>
-                        </div>
-                        <div className="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                          <dt className="text-sm font-medium text-gray-500">Email</dt>
-                          <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{selectedUser.email}</dd>
-                        </div>
-                        <div className="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                          <dt className="text-sm font-medium text-gray-500">Role</dt>
-                          <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              selectedUser.role === 'ADMIN' 
-                                ? 'bg-purple-100 text-purple-800'
-                                : 'bg-blue-100 text-blue-800'
-                            }`}>
-                              {selectedUser.role}
-                            </span>
-                          </dd>
-                        </div>
-                        {selectedUser.customer?.phone && (
-                          <div className="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                            <dt className="text-sm font-medium text-gray-500">Phone</dt>
-                            <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                              {selectedUser.customer.phone}
-                            </dd>
+
+                <div className="bg-white">
+                  {/* Tabs */}
+                  <div className="border-b border-gray-200">
+                    <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+                      <button
+                        onClick={() => setActiveTab('profile')}
+                        className={`${
+                          activeTab === 'profile'
+                            ? 'border-indigo-500 text-indigo-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                      >
+                        Profile
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('transactions')}
+                        className={`${
+                          activeTab === 'transactions'
+                            ? 'border-indigo-500 text-indigo-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                      >
+                        Transactions
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('logs')}
+                        className={`${
+                          activeTab === 'logs'
+                            ? 'border-indigo-500 text-indigo-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                      >
+                        Activity Logs
+                      </button>
+                    </nav>
+                  </div>
+
+                  {/* Tab Content */}
+                  <div className="px-6 py-6">
+                    {/* Profile Tab */}
+                    {activeTab === 'profile' && (
+                      <div>
+                        {isEditing ? (
+                          <form onSubmit={handleEditUser} className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">First Name</label>
+                                <input
+                                  type="text"
+                                  id="firstName"
+                                  name="firstName"
+                                  value={editData.firstName}
+                                  onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
+                                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">Last Name</label>
+                                <input
+                                  type="text"
+                                  id="lastName"
+                                  name="lastName"
+                                  value={editData.lastName}
+                                  onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
+                                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                              <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                value={editData.email}
+                                onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone</label>
+                              <input
+                                type="tel"
+                                id="phone"
+                                name="phone"
+                                value={editData.phone}
+                                onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
+                              <select
+                                id="role"
+                                name="role"
+                                value={editData.role}
+                                onChange={(e) => setEditData({ ...editData, role: e.target.value })}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              >
+                                <option value="USER">User</option>
+                                <option value="ADMIN">Admin</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
+                              <select
+                                id="status"
+                                name="status"
+                                value={editData.status}
+                                onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              >
+                                <option value="ACTIVE">Active</option>
+                                <option value="INACTIVE">Inactive</option>
+                                <option value="SUSPENDED">Suspended</option>
+                              </select>
+                            </div>
+                            <div className="flex justify-end space-x-3">
+                              <button
+                                type="button"
+                                onClick={() => setIsEditing(false)}
+                                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                              >
+                                Save Changes
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <div>
+                            <div className="flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => startEditing(selectedUser)}
+                                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                              >
+                                Edit Profile
+                              </button>
+                            </div>
+                            <dl className="mt-4 divide-y divide-gray-200">
+                              <div className="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+                                <dt className="text-sm font-medium text-gray-500">Full name</dt>
+                                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                  {selectedUser.customer 
+                                    ? `${selectedUser.customer.firstName} ${selectedUser.customer.lastName}`
+                                    : 'N/A'}
+                                </dd>
+                              </div>
+                              <div className="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+                                <dt className="text-sm font-medium text-gray-500">Email</dt>
+                                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{selectedUser.email}</dd>
+                              </div>
+                              <div className="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+                                <dt className="text-sm font-medium text-gray-500">Role</dt>
+                                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    selectedUser.role === 'ADMIN' 
+                                      ? 'bg-purple-100 text-purple-800'
+                                      : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {selectedUser.role}
+                                  </span>
+                                </dd>
+                              </div>
+                              <div className="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+                                <dt className="text-sm font-medium text-gray-500">Status</dt>
+                                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    selectedUser.status === 'ACTIVE' 
+                                      ? 'bg-green-100 text-green-800'
+                                      : selectedUser.status === 'INACTIVE'
+                                      ? 'bg-gray-100 text-gray-800'
+                                      : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {selectedUser.status}
+                                  </span>
+                                </dd>
+                              </div>
+                              {selectedUser.customer?.phone && (
+                                <div className="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+                                  <dt className="text-sm font-medium text-gray-500">Phone</dt>
+                                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                    {selectedUser.customer.phone}
+                                  </dd>
+                                </div>
+                              )}
+                              <div className="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+                                <dt className="text-sm font-medium text-gray-500">Created</dt>
+                                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                  {format(new Date(selectedUser.createdAt), 'PPpp')}
+                                </dd>
+                              </div>
+                            </dl>
                           </div>
                         )}
-                        <div className="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                          <dt className="text-sm font-medium text-gray-500">Created</dt>
-                          <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                            {format(new Date(selectedUser.createdAt), 'PPpp')}
-                          </dd>
-                        </div>
-                      </dl>
-                    </div>
-                    <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteUser(selectedUser.id)}
-                        className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
-                      >
-                        Delete User
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowUserModal(false)}
-                        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
-                      >
-                        Close
-                      </button>
-                    </div>
+                      </div>
+                    )}
+
+                    {/* Transactions Tab */}
+                    {activeTab === 'transactions' && (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date
+                              </th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Type
+                              </th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Amount
+                              </th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                              </th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Description
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {selectedUser.transactions?.map((transaction) => (
+                              <tr key={transaction.id}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {format(new Date(transaction.createdAt), 'MMM d, yyyy HH:mm')}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    transaction.type === 'DEPOSIT' 
+                                      ? 'bg-green-100 text-green-800'
+                                      : transaction.type === 'WITHDRAWAL'
+                                      ? 'bg-red-100 text-red-800'
+                                      : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {transaction.type}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  ${transaction.amount.toFixed(2)}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    transaction.status === 'COMPLETED'
+                                      ? 'bg-green-100 text-green-800'
+                                      : transaction.status === 'PENDING'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {transaction.status}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {transaction.description}
+                                </td>
+                              </tr>
+                            ))}
+                            {(!selectedUser.transactions || selectedUser.transactions.length === 0) && (
+                              <tr>
+                                <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                                  No transactions found
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Activity Logs Tab */}
+                    {activeTab === 'logs' && (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Timestamp
+                              </th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Action
+                              </th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Entity
+                              </th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Details
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {selectedUser.activityLogs?.map((log) => (
+                              <tr key={log.id}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {format(new Date(log.timestamp), 'MMM d, yyyy HH:mm')}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    log.action === 'CREATE'
+                                      ? 'bg-green-100 text-green-800'
+                                      : log.action === 'UPDATE'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : log.action === 'DELETE'
+                                      ? 'bg-red-100 text-red-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {log.action}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {log.entity}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-500">
+                                  {log.details}
+                                </td>
+                              </tr>
+                            ))}
+                            {(!selectedUser.activityLogs || selectedUser.activityLogs.length === 0) && (
+                              <tr>
+                                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
+                                  No activity logs found
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer Actions */}
+                  <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteUser(selectedUser.id)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                    >
+                      Delete User
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowUserModal(false)}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      Close
+                    </button>
                   </div>
                 </div>
               </div>
