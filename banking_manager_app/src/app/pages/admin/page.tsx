@@ -11,35 +11,66 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(true);
 
   useEffect(() => {
-    // Check auth status
-    fetch('/api/auth/me')
-      .then(response => response.json())
-      .then(data => {
-        if (!data.success || data.data.role !== 'ADMIN') {
-          router.push('/login_page');
+    let isMounted = true;
+
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        const data = await response.json();
+
+        if (!isMounted) return;
+
+        if (!data.success) {
+          setError('Authentication failed');
+          setIsAuthorized(false);
           return;
         }
+
+        if (data.data.role !== 'ADMIN') {
+          setError('You must be an admin to view this page');
+          setIsAuthorized(false);
+          return;
+        }
+
         setUser(data.data);
+        setIsAuthorized(true);
         
-        // Fetch dashboard data
-        return fetch('/api/admin/dashboard')
-          .then(response => response.json())
-          .then(dashData => {
-            if (dashData.success) {
-              setDashboardData(dashData.data);
-            }
-          });
-      })
-      .catch(error => {
+        // Only fetch dashboard data if user is authorized
+        try {
+          const dashResponse = await fetch('/api/admin/dashboard');
+          const dashData = await dashResponse.json();
+          
+          if (!isMounted) return;
+
+          if (dashData.success) {
+            setDashboardData(dashData.data);
+          }
+        } catch (dashError) {
+          console.error('Error fetching dashboard data:', dashError);
+          setError('Failed to load dashboard data');
+        }
+      } catch (error) {
         console.error('Error checking auth status:', error);
-        router.push('/login_page');
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [router]);
+        if (isMounted) {
+          setError('Failed to verify authentication');
+          setIsAuthorized(false);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    checkAuth();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -65,6 +96,25 @@ export default function AdminDashboard() {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h2>
+          <p className="text-gray-600 mb-6">{error || 'You do not have permission to view this page.'}</p>
+          <div className="flex justify-center">
+            <Link
+              href="/login_page"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded"
+            >
+              Go to Login
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
