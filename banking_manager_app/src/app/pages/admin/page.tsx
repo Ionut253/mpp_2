@@ -74,7 +74,7 @@ export default function AdminDashboard() {
         throw new Error('Failed to logout');
       }
 
-      router.push('/login_page');
+      router.push('/pages/login_page');
     } catch (error) {
       console.error('Logout error:', error);
       setError('Failed to logout. Please try again.');
