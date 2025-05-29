@@ -4,12 +4,43 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+interface DashboardData {
+  summary: {
+    totalCustomers: number;
+    totalAccounts: number;
+    totalTransactions: number;
+  };
+  recentTransactions: Array<{
+    id: string;
+    amount: number;
+    type: string;
+    date: string;
+    customer: string;
+    accountType: string;
+  }>;
+  recentCustomers: Array<{
+    id: string;
+    name: string;
+    email: string;
+    date: string;
+    accountCount: number;
+  }>;
+  recentActivity: Array<{
+    id: string;
+    action: string;
+    entity: string;
+    details: string;
+    date: string;
+    user: string;
+  }>;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
-  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(true);
 
@@ -153,8 +184,90 @@ export default function AdminDashboard() {
       </header>
 
       {dashboardData && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Add your dashboard content here using dashboardData */}
+        <div className="space-y-8">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Customers</h3>
+              <p className="text-3xl font-bold text-blue-600">{dashboardData.summary.totalCustomers}</p>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Accounts</h3>
+              <p className="text-3xl font-bold text-green-600">{dashboardData.summary.totalAccounts}</p>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Transactions</h3>
+              <p className="text-3xl font-bold text-purple-600">{dashboardData.summary.totalTransactions}</p>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Recent Transactions */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Recent Transactions</h3>
+              <div className="space-y-4">
+                {dashboardData.recentTransactions.map(tx => (
+                  <div key={tx.id} className="border-b pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-gray-800">{tx.customer}</p>
+                        <p className="text-sm text-gray-600">{tx.accountType}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-bold ${tx.type === 'DEPOSIT' ? 'text-green-600' : 'text-red-600'}`}>
+                          {tx.type === 'DEPOSIT' ? '+' : '-'}${tx.amount}
+                        </p>
+                        <p className="text-sm text-gray-500">{new Date(tx.date).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Customers */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Recent Customers</h3>
+              <div className="space-y-4">
+                {dashboardData.recentCustomers.map(customer => (
+                  <div key={customer.id} className="border-b pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-gray-800">{customer.name}</p>
+                        <p className="text-sm text-gray-600">{customer.email}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-blue-600">{customer.accountCount} accounts</p>
+                        <p className="text-sm text-gray-500">{new Date(customer.date).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Activity Log */}
+            <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Recent Activity</h3>
+              <div className="space-y-4">
+                {dashboardData.recentActivity.map(activity => (
+                  <div key={activity.id} className="border-b pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-gray-800">{activity.action} {activity.entity}</p>
+                        <p className="text-sm text-gray-600">{activity.details}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-600">{activity.user}</p>
+                        <p className="text-sm text-gray-500">{new Date(activity.date).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
