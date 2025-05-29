@@ -49,14 +49,14 @@ export default function AdminDashboard() {
       .then(response => response.json())
       .then(data => {
         if (!data.success || data.data.role !== 'ADMIN') {
-          router.push('/login_page');
+          router.push('/pages/login_page');
           return;
         }
         setUser(data.data);
       })
       .catch(error => {
         console.error('Error checking auth status:', error);
-        router.push('/login_page');
+        router.push('/pages/login_page');
       })
       .finally(() => {
         setIsLoading(false);
