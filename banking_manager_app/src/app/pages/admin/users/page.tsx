@@ -98,9 +98,26 @@ export default function UsersPage() {
     }
   };
 
-  const handleViewUser = (user: User) => {
-    setSelectedUser(user);
-    setShowUserModal(true);
+  const handleViewUser = async (user: User) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await fetch(`/api/admin/users/${user.id}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch user details');
+      }
+      
+      const data = await response.json();
+      setSelectedUser(data.data);
+      setShowUserModal(true);
+    } catch (err) {
+      console.error('Error fetching user details:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch user details');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

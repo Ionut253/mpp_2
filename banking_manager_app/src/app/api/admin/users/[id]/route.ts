@@ -3,6 +3,39 @@ import prisma from '@/lib/db';
 import { getAuthUser, isAdmin } from '@/lib/auth';
 import { logActivity } from '@/lib/activity-logger';
 import bcrypt from 'bcryptjs';
+import { User, Transaction, Account } from '@/generated/client';
+
+interface ExtendedUser extends User {
+  customer?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string | null;
+    address?: string | null;
+    dob?: Date | null;
+    accounts: Array<{
+      id: string;
+      transactions: Array<{
+        id: string;
+        amount: number;
+        type: string;
+        status: string;
+        description: string | null;
+        createdAt: Date;
+        accountId: string;
+      }>;
+    }>;
+  } | null;
+  activityLogs: Array<{
+    id: string;
+    action: string;
+    entity: string;
+    entityId: string;
+    details: string | null;
+    timestamp: Date;
+  }>;
+}
 
 // Get a single user by ID
 export async function GET(
@@ -32,17 +65,44 @@ export async function GET(
             email: true,
             phone: true,
             address: true,
-            dob: true
+            dob: true,
+            accounts: {
+              select: {
+                id: true,
+                transactions: {
+                  orderBy: {
+                    createdAt: 'desc'
+                  },
+                  take: 50,
+                  select: {
+                    id: true,
+                    amount: true,
+                    type: true,
+                    description: true,
+                    createdAt: true,
+                    accountId: true
+                  }
+                }
+              }
+            }
           }
         },
         activityLogs: {
           orderBy: {
             timestamp: 'desc'
           },
-          take: 50
+          take: 50,
+          select: {
+            id: true,
+            action: true,
+            entity: true,
+            entityId: true,
+            details: true,
+            timestamp: true
+          }
         }
       }
-    });
+    }) as ExtendedUser | null;
 
     if (!targetUser) {
       return NextResponse.json(
@@ -50,6 +110,16 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    // Flatten transactions from all accounts
+    const transactions = targetUser.customer?.accounts
+      ? targetUser.customer.accounts.flatMap(account => account.transactions)
+      : [];
+
+    // Sort transactions by date
+    transactions.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
     await logActivity({
       userId: user.id,
@@ -59,12 +129,16 @@ export async function GET(
       details: `Admin viewed user ${targetUser.email}`
     });
 
-    // Remove sensitive information
+    // Remove sensitive information and add flattened transactions
     const { password, ...userWithoutPassword } = targetUser;
+    const userWithTransactions = {
+      ...userWithoutPassword,
+      transactions: transactions.slice(0, 50) // Keep only the 50 most recent transactions
+    };
 
     return NextResponse.json({
       success: true,
-      data: userWithoutPassword
+      data: userWithTransactions
     });
   } catch (error) {
     console.error('Error fetching user details:', error);
